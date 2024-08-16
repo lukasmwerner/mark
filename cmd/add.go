@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+Copyright © 2024 Lukas Werner <me@lukaswerner.com>
 */
 package cmd
 
@@ -65,17 +65,12 @@ mark add [--tags list,of,seperated,tags] url`,
 			Description: description,
 		}
 
-		id, err := store.InsertBookmark(db, bm)
+		_, err = store.InsertBookmark(db, bm)
 		if err != nil {
 			log.Fatalln("unable to save bookmark: ", err.Error())
 			return
 		}
 
-		err = store.InsertTagsAndAssociate(db, id, bm.Tags)
-		if err != nil {
-			log.Fatalln("unable to save tags: ", err.Error())
-			return
-		}
 
 
 	},

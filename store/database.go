@@ -3,44 +3,62 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/mattn/go-sqlite3"
 )
 
-type table struct {
+type requirement struct {
 	name       string
 	definition string
 }
 
-var Tables = []table{
+var Tables = []requirement{
 	{
 		name: "Bookmarks",
 		definition: `CREATE TABLE IF NOT EXISTS Bookmarks (
-	bookmark_id INTEGER PRIMARY KEY AUTOINCREMENT,
-	url TEXT NOT NULL UNIQUE,
-	title TEXT NOT NULL,
-	description TEXT,
-	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	);`,
+    id INTEGER PRIMARY KEY NOT NULL,
+    url TEXT,
+    title TEXT,
+    description TEXT,
+    tags TEXT
+);`,
 	},
 	{
-		name: "Tags",
-		definition: `CREATE TABLE IF NOT EXISTS Tags (
-		tag_id INTEGER PRIMARY KEY AUTOINCREMENT,
-		tag_name TEXT NOT NULL UNIQUE
-	);`,
+		name: "Bookmarks_fts",
+		definition: `CREATE VIRTUAL TABLE IF NOT EXISTS Bookmarks_fts USING fts5(
+    url,
+    title,
+    description,
+    tags
+);`,
 	},
 	{
-		name: "BookmarkTags",
-		definition: `CREATE TABLE BookmarkTags (
-		bookmark_id INTEGER NOT NULL,
-		tag_id INTEGER NOT NULL,
-		PRIMARY KEY (bookmark_id, tag_id),
-		FOREIGN KEY (bookmark_id) REFERENCES Bookmarks (bookmark_id),
-		FOREIGN KEY (tag_id) REFERENCES Tags (tag_id)
-	);`,
+		name: "Bookmark_Sync_1",
+		definition: `CREATE TRIGGER IF NOT EXISTS Bookmarks_insert AFTER INSERT ON Bookmarks
+BEGIN
+    INSERT INTO Bookmarks_fts (rowid, url, title, description, tags)
+    VALUES (new.id, new.url, new.title, new.description, new.tags);
+END;`,
+	},
+	{
+		name: "Bookmark_Sync_2",
+		definition: `CREATE TRIGGER IF NOT EXISTS Bookmarks_delete AFTER DELETE ON Bookmarks
+BEGIN
+    DELETE FROM Bookmarks_fts WHERE rowid = old.id;
+END;`,
+	},
+	{
+		name: "Bookmark_Sync_3",
+		definition: `CREATE TRIGGER IF NOT EXISTS Bookmarks_update AFTER UPDATE ON Bookmarks
+BEGIN
+    DELETE FROM Bookmarks_fts WHERE rowid = old.id;
+    INSERT INTO Bookmarks_fts (rowid, url, title, description, tags)
+    VALUES (new.id, new.url, new.title, new.description, new.tags);
+END;`,
 	},
 }
 
@@ -84,19 +102,19 @@ func Open() (*DB, error) {
 	}
 
 	err = EnsureTables(db, Tables...)
-
-	if err == nil { // Tables were setup so we need to finish
-		for _, table := range Tables {
-			_, err = db.Exec("select crsql_as_crr('"+table.name+"');")
-			if err != nil {
-				return nil, errors.Join(errors.New("unable to open database"), err)
-			}
-		}
+	if err != nil {
+		log.Println(err.Error())
 	}
+
+	_, err = db.Exec("select crsql_as_crr('Bookmarks');")
+	if err != nil {
+		return nil, errors.Join(errors.New("unable to setup crdts"), err)
+	}
+
 
 	err = syncronizeFromHostsToDB(db, hostname, changesPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(errors.New("unable to sync fs -> db"), err)
 	}
 
 	return db, nil
@@ -105,9 +123,9 @@ func Open() (*DB, error) {
 type DB struct {
 	*sql.DB
 
-	StoreLoc string
+	StoreLoc        string
 	ChangesStoreLoc string
-	Hostname string
+	Hostname        string
 }
 
 func (db *DB) Close() error {
@@ -124,10 +142,11 @@ func (db *DB) Close() error {
 	return db.DB.Close()
 }
 
-func EnsureTables(db *DB, tables ...table) error {
+func EnsureTables(db *DB, tables ...requirement) error {
 	for _, table := range tables {
 		_, err := db.Exec(table.definition)
 		if err != nil {
+			log.Print(table.name, err.Error())
 			return err
 		}
 	}
@@ -135,50 +154,36 @@ func EnsureTables(db *DB, tables ...table) error {
 	return nil
 }
 
-
 func InsertBookmark(db *DB, bookmark Bookmark) (BookmarkId, error) {
-    result, err := db.Exec("INSERT INTO Bookmarks (url, title, description) VALUES (?, ?, ?)",
-        bookmark.Url, bookmark.Title, bookmark.Description)
-    if err != nil {
-        return 0, err
-    }
+	tags := strings.Join(bookmark.Tags, ", ")
+	result, err := db.Exec("INSERT INTO Bookmarks (url, title, description, tags) VALUES (?, ?, ?, ?)",
+		bookmark.Url, bookmark.Title, bookmark.Description, tags)
+	if err != nil {
+		return 0, err
+	}
 	id, err := result.LastInsertId()
 	return BookmarkId(id), err
 }
 
 
-func InsertTagsAndAssociate(db *DB, bookmarkID BookmarkId, tags []string) error {
-    // Insert tags and get their IDs
-    tagIDs := make(map[string]int64)
-    for _, tag := range tags {
-        var tagID int64
-        err := db.QueryRow("SELECT tag_id FROM Tags WHERE tag_name = ?", tag).Scan(&tagID)
-        if err == sql.ErrNoRows {
-            // Insert the tag if it doesn't exist
-            result, err := db.Exec("INSERT INTO Tags (tag_name) VALUES (?)", tag)
-            if err != nil {
-                return err
-            }
-            tagID, err = result.LastInsertId()
-            if err != nil {
-                return err
-            }
-        } else if err != nil {
-            return err
-        }
-        tagIDs[tag] = tagID
-    }
+func SearchBookmarks(db *DB, query string) ([]Bookmark, error) {
+	bookmarks := []Bookmark{}
+	rows, err := db.Query(`SELECT url, title, description, tags FROM Bookmarks_fts WHERE Bookmarks_fts MATCH ?;`, query)
+	if err != nil {
+		return bookmarks, err
+	}
+	defer rows.Close()
 
-    // Associate the tags with the bookmark
-    for _, tag := range tags {
-        _, err := db.Exec("INSERT INTO BookmarkTags (bookmark_id, tag_id) VALUES (?, ?)", bookmarkID, tagIDs[tag])
-        if err != nil {
-            return err
-        }
-    }
+	for rows.Next() {
+		var b Bookmark
+		var tags string
+		err := rows.Scan(&b.Url, &b.Title, &b.Description, &tags)
+		if err != nil {
+			return bookmarks, err
+		}
+		b.Tags = strings.Split(tags, ", ")
+		bookmarks = append(bookmarks, b)
+	}
 
-    return nil
+	return bookmarks, nil
 }
-
-
-

@@ -1,12 +1,15 @@
 /*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+Copyright © 2024 Lukas Werner <me@lukaswerner.com>
 */
 package cmd
 
 import (
 	"fmt"
 	"log"
+	"strings"
 
+	"github.com/charmbracelet/huh"
+	"github.com/cli/browser"
 	"github.com/lukasmwerner/mark/store"
 	"github.com/spf13/cobra"
 )
@@ -14,16 +17,10 @@ import (
 // openCmd represents the open command
 var openCmd = &cobra.Command{
 	Use:   "open",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Opens the matching search link in the user's browser",
+	Long:  ``,
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("open called")
-
 		db, err := store.Open()
 		if err != nil {
 			log.Panicln(err.Error())
@@ -31,8 +28,33 @@ to quickly create a Cobra application.`,
 		}
 		defer db.Close()
 
+		searchQuery := strings.Join(args, " ")
 
+		bookmarks, err := store.SearchBookmarks(db, searchQuery)
+		if err != nil {
+			log.Panicln("unable to search bookmarks", err.Error())
+		}
 
+		if len(bookmarks) == 1 {
+			fmt.Printf("Opening %s %s\n", bookmarks[0].Title, bookmarks[0].Url)
+			browser.OpenURL(bookmarks[0].Url)
+			return
+		}
+
+		pickedLink := ""
+		options := make([]huh.Option[string], len(bookmarks))
+		for i, bookmark := range bookmarks {
+			options[i] = huh.NewOption(bookmark.Title, bookmark.Url)
+		}
+		err = huh.NewSelect[string]().Title("Pick your link").Options(options...).Value(&pickedLink).Run()
+		if err != nil {
+			if err == huh.ErrUserAborted {
+				return
+			}
+			log.Fatalln(err.Error())
+		}
+
+		browser.OpenURL(pickedLink)
 
 	},
 }
