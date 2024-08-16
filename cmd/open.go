@@ -34,6 +34,10 @@ var openCmd = &cobra.Command{
 		if err != nil {
 			log.Panicln("unable to search bookmarks", err.Error())
 		}
+		if len(bookmarks) == 0 {
+			fmt.Println("found no bookmarks")
+			return
+		}
 
 		if len(bookmarks) == 1 {
 			fmt.Printf("Opening %s %s\n", bookmarks[0].Title, bookmarks[0].Url)
