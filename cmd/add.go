@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/lukasmwerner/mark/store"
@@ -53,7 +54,6 @@ mark add [--tags list,of,seperated,tags] url`,
 
 		defer db.Close()
 
-
 		if title == "" {
 			title = fetchTitle(link)
 		}
@@ -70,8 +70,6 @@ mark add [--tags list,of,seperated,tags] url`,
 			log.Fatalln("unable to save bookmark: ", err.Error())
 			return
 		}
-
-
 
 	},
 }
@@ -93,8 +91,6 @@ func init() {
 	addCmd.Flags().StringVarP(&description, "description", "d", "", "Sets the link's description")
 }
 
-
-
 func fetchTitle(u *url.URL) string {
 	resp, err := http.Get(u.String())
 	if err != nil {
@@ -110,5 +106,5 @@ func fetchTitle(u *url.URL) string {
 		return ""
 	}
 
-	return doc.Find("title").Text()
+	return strings.TrimSpace(doc.Find("title").Text())
 }
