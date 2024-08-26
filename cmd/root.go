@@ -83,7 +83,7 @@ func (m rootAppModel) updateTable() rootAppModel {
 	m.currentIndex = 1
 
 	for _, bookmark := range bookmarks {
-		m.table.Row(bookmark.Title, bookmark.Description, strings.Join(bookmark.Tags, ","), bookmark.Url)
+		m.table.Row(strings.TrimSpace(bookmark.Title), bookmark.Description, strings.Join(bookmark.Tags, ","), bookmark.Url)
 	}
 
 	return m
@@ -112,7 +112,7 @@ func (m rootAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.mode {
 			case NORMAL:
 				// todo open active link
-				if m.currentIndex < m.rowsCount {
+				if m.currentIndex <= m.rowsCount {
 					url := m.rows[m.currentIndex-1].Url
 					browser.OpenURL(url)
 				}
@@ -128,11 +128,11 @@ func (m rootAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, m.input.Focus())
 				return m, tea.Batch(cmds...)
 			}
-		case "j":
-			if m.mode == NORMAL {
+		case "j", "up":
+			if m.mode == NORMAL && m.currentIndex+1 <= m.rowsCount {
 				m.currentIndex += 1
 			}
-		case "k":
+		case "k", "down":
 			if m.mode == NORMAL && m.currentIndex-1 != 0 {
 				m.currentIndex -= 1
 			}
