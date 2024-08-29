@@ -111,7 +111,6 @@ func Open() (*DB, error) {
 		return nil, errors.Join(errors.New("unable to setup crdts"), err)
 	}
 
-
 	err = syncronizeFromHostsToDB(db, hostname, changesPath)
 	if err != nil {
 		return nil, errors.Join(errors.New("unable to sync fs -> db"), err)
@@ -165,7 +164,6 @@ func InsertBookmark(db *DB, bookmark Bookmark) (BookmarkId, error) {
 	return BookmarkId(id), err
 }
 
-
 func SearchBookmarks(db *DB, query string) ([]Bookmark, error) {
 	bookmarks := []Bookmark{}
 	rows, err := db.Query(`SELECT url, title, description, tags FROM Bookmarks_fts WHERE Bookmarks_fts MATCH ?;`, query)
@@ -186,4 +184,22 @@ func SearchBookmarks(db *DB, query string) ([]Bookmark, error) {
 	}
 
 	return bookmarks, nil
+}
+
+func UpdateBookmark(db *DB, original Bookmark, updated Bookmark) error {
+	_, err := db.Exec(`UPDATE Bookmarks SET 
+		url = ?,
+		title = ?,
+		description = ?,
+		tags = ?
+	WHERE 
+		url = ?;`,
+		updated.Url,
+		updated.Title,
+		updated.Description,
+		strings.Join(updated.Tags, ", "),
+		original.Url,
+	)
+
+	return err
 }
