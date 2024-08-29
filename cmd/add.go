@@ -58,6 +58,10 @@ mark add [--tags list,of,seperated,tags] url`,
 			title = fetchTitle(link)
 		}
 
+		if description == "" {
+			description = fetchDescription(link)
+		}
+
 		bm := store.Bookmark{
 			Url:         link.String(),
 			Tags:        tags,
@@ -106,5 +110,32 @@ func fetchTitle(u *url.URL) string {
 		return ""
 	}
 
-	return strings.TrimSpace(doc.Find("title").Text())
+	title, exists := doc.Find(`meta[property='og:title']`).Attr("content")
+	if !exists {
+		return strings.TrimSpace(doc.Find("title").Text())
+	}
+	return strings.TrimSpace(title)
+
+}
+
+func fetchDescription(u *url.URL) string {
+	resp, err := http.Get(u.String())
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return ""
+	}
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return ""
+	}
+
+	title, exists := doc.Find(`meta[property='og:description']`).Attr("content")
+	if !exists {
+		return ""
+	}
+	return strings.TrimSpace(title)
 }
