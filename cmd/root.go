@@ -21,8 +21,9 @@ import (
 type mode string
 
 var (
-	NORMAL mode = "NORMAL"
-	SEARCH mode = "SEARCH"
+	NORMAL  mode = "NORMAL"
+	SEARCH  mode = "SEARCH"
+	PREVIEW mode = "PREVIEW"
 )
 
 var (
@@ -49,6 +50,10 @@ var (
 				Foreground(lipgloss.Color("229")).
 				Background(lipgloss.Color("#d2b2ff")).
 				Bold(false)
+
+	modalstyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			Width(80)
 )
 
 type rootAppModel struct {
@@ -103,11 +108,19 @@ func (m rootAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 		case "esc":
-			m.mode = NORMAL
-			m.input.Blur()
+			if m.mode != NORMAL {
+				m.mode = NORMAL
+				m.input.Blur()
 
-			m = m.updateTable()
-			break
+				m = m.updateTable()
+			}
+		case " ":
+			if m.mode == NORMAL {
+				m.mode = PREVIEW
+			} else if m.mode == PREVIEW {
+				m.mode = NORMAL
+			}
+
 		case "enter":
 			switch m.mode {
 			case NORMAL:
@@ -116,6 +129,12 @@ func (m rootAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					url := m.rows[m.currentIndex-1].Url
 					browser.OpenURL(url)
 				}
+			case PREVIEW:
+				if m.currentIndex <= m.rowsCount {
+					url := m.rows[m.currentIndex-1].Url
+					browser.OpenURL(url)
+				}
+				m.mode = NORMAL
 			case SEARCH:
 				m.mode = NORMAL
 				m.input.Blur()
@@ -150,6 +169,20 @@ func (m rootAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m rootAppModel) View() string {
+
+	if m.mode == PREVIEW {
+
+		contents := "title: " + m.rows[m.currentIndex-1].Title + "\n"
+		contents += "tags: " + strings.Join(m.rows[m.currentIndex-1].Tags, ", ") + "\n"
+		contents += "url: " + m.rows[m.currentIndex-1].Url + "\n"
+		contents += "desc: \n" + m.rows[m.currentIndex-1].Description
+
+		modal := modalstyle.Render(contents)
+
+		centered := lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, modal)
+
+		return centered
+	}
 
 	m.table.StyleFunc(func(row, col int) lipgloss.Style {
 		switch {
