@@ -63,9 +63,13 @@ export default function Command() {
             }
             actions={
               <ActionPanel>
-                <Action.OpenInBrowser url={item.Url} />
+                <Action.OpenInBrowser url={item.Url} shortcut={{ modifiers: ["cmd"], key: "enter" }} />
                 <Action.CopyToClipboard title="Copy URL" content={item.Url} />
-                <Action title="Toggle Detail" onAction={() => setShowDetail(!showingDetail)} />
+                <Action
+                  title="Toggle Detail"
+                  onAction={() => setShowDetail(!showingDetail)}
+                  shortcut={{ modifiers: ["cmd"], key: "d" }}
+                />
               </ActionPanel>
             }
           />
