@@ -3,7 +3,9 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -171,14 +173,37 @@ func InsertBookmark(db *DB, bookmark Bookmark) (BookmarkId, error) {
 	return BookmarkId(id), err
 }
 
-func GetBookmark(db *DB, url string) (Bookmark, error) {
+func GetBookmark(db *DB, query_url string) (Bookmark, error) {
 	var b Bookmark
 	var tags string
-	err := db.QueryRow("SELECT url, title, description, tags FROM Bookmarks WHERE url = ?", url).Scan(&b.Url, &b.Title, &b.Description, &tags)
+
+	u, err := url.Parse(query_url)
 	if err != nil {
 		return b, err
 	}
-	b.Tags = strings.Split(tags, ", ")
+
+	rows, err := db.Query("SELECT url, title, description, tags FROM Bookmarks WHERE url like ? AND url like ?", fmt.Sprintf("%%%v%%", u.Host), fmt.Sprintf("%%%v%%", u.Path))
+	if err != nil {
+		return b, err
+	}
+
+	i := 0
+	for rows.Next() {
+		if i > 0 {
+			return b, errors.New("multiple bookmarks found")
+		}
+		err := rows.Scan(&b.Url, &b.Title, &b.Description, &tags)
+		if err != nil {
+			return b, err
+		}
+		b.Tags = strings.Split(tags, ", ")
+		i++
+	}
+
+	if i == 0 {
+		return b, sql.ErrNoRows
+	}
+
 	return b, nil
 }
 
