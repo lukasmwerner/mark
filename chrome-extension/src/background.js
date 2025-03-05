@@ -1,5 +1,16 @@
 import { Ollama } from "ollama/browser";
 
+const ollama_schema = {
+  type: "object",
+  properties: {
+    tags: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["tags"],
+};
+
 // Initialize Ollama client
 let ollamaClient = null;
 
@@ -13,6 +24,71 @@ chrome.runtime.onInstalled.addListener(async () => {
   // Initialize Ollama client on install
   await initOllamaClient();
 });
+
+// Add listener for tab activation and update events
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  console.log("Tab activated:", activeInfo.tabId);
+  checkIfBookmarked(activeInfo.tabId);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  // Only run when the page has finished loading
+  if (changeInfo.status === "complete") {
+    checkIfBookmarked(tabId);
+  }
+});
+
+async function checkIfBookmarked(tabId) {
+  chrome.tabs.sendMessage(
+    tabId,
+    { action: "getPageInfo" },
+    async function (tab_reponse) {
+      if (chrome.runtime.lastError) {
+        console.error("Could not connect to page");
+        return;
+      }
+
+      try {
+        // Get the API token
+        const { apiToken } = await chrome.storage.sync.get(["apiToken"]);
+        if (!apiToken) {
+          // Can't check without API token
+          return;
+        }
+
+        // Check if the URL is bookmarked
+        const response = await fetch(
+          `http://localhost:1990/api/bookmarks?url=${encodeURIComponent(
+            tab_reponse.url,
+          )}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${apiToken}`,
+            },
+          },
+        );
+
+        console.log("Response status:", response.status);
+
+        if (response.ok) {
+          // URL is bookmarked
+          setFilledIcon();
+        } else if (response.status === 404) {
+          // URL is not bookmarked
+          setDefaultIcon();
+        } else {
+          // Error occurred
+          console.error("Error checking bookmark status:", response.statusText);
+          setDefaultIcon();
+        }
+      } catch (error) {
+        console.error("Error in checkIfBookmarked:", error);
+        setDefaultIcon();
+      }
+    },
+  );
+}
 
 async function initOllamaClient() {
   try {
@@ -82,9 +158,8 @@ async function generateTagsWithOllama(title, description) {
     // Use custom prompt if available, otherwise use default
     let promptTemplate =
       ollamaPrompt ||
-      `Generate 3-5 relevant tags for this content.
-      Return only the tags as a JSON array of strings.
-      No additional explanation needed.
+      `Generate 3 or more relevant tags for this content.
+      return as JSON
 
       Title: {{title}}
       Description: {{description}}`;
@@ -100,37 +175,10 @@ async function generateTagsWithOllama(title, description) {
       options: {
         temperature: 0.3,
       },
+      format: ollama_schema,
     });
 
-    // Try to parse the response as JSON
-    try {
-      // The response might include markdown backticks or other text
-      // Try to extract just the JSON array
-      const jsonMatch = response.response.match(/\[.*\]/);
-      if (jsonMatch) {
-        const tags = JSON.parse(jsonMatch[0]);
-        return tags;
-      }
-      // If the entire response is valid JSON, use it
-      return JSON.parse(response.response);
-    } catch (parseError) {
-      // If parsing fails, try to extract tags using regex
-      console.warn(
-        "Couldn't parse Ollama response as JSON, extracting tags manually",
-        parseError,
-      );
-      const tagsPattern = /"([^"]+)"|'([^']+)'|`([^`]+)`|([a-zA-Z0-9-_]+)/g;
-      const extractedTags = [];
-      let match;
-
-      while ((match = tagsPattern.exec(response.response)) !== null) {
-        // Take the first capturing group that matched
-        const tag = match[1] || match[2] || match[3] || match[4];
-        if (tag) extractedTags.push(tag);
-      }
-
-      return extractedTags;
-    }
+    return JSON.parse(response.response).tags;
   } catch (error) {
     console.error("Error generating tags with Ollama:", error);
     return [];
@@ -215,4 +263,24 @@ async function quickSave(tab) {
   } catch (error) {
     console.error("Error:", error);
   }
+}
+
+function setFilledIcon() {
+  chrome.action.setIcon({
+    path: {
+      16: "icon_filled16.png",
+      48: "icon_filled48.png",
+      128: "icon_filled128.png",
+    },
+  });
+}
+
+function setDefaultIcon() {
+  chrome.action.setIcon({
+    path: {
+      16: "icon16.png",
+      48: "icon48.png",
+      128: "icon128.png",
+    },
+  });
 }

@@ -69,6 +69,10 @@ END;`,
     key TEXT NOT NULL UNIQUE
 );`,
 	},
+	{
+		name:       "Preformance_Tune_WAL",
+		definition: `PRAGMA journal_mode=WAL;`,
+	},
 }
 
 func Open() (*DB, error) {
@@ -201,6 +205,15 @@ func GetBookmark(db *DB, query_url string) (Bookmark, error) {
 	}
 
 	if i == 0 {
+		return b, sql.ErrNoRows
+	}
+
+	db_url, err := url.Parse(b.Url)
+	if err != nil {
+		return b, errors.New("unable to parse bookmark url")
+	}
+
+	if db_url.Path != u.Path {
 		return b, sql.ErrNoRows
 	}
 

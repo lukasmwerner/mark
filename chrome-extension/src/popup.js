@@ -1,5 +1,16 @@
 import { Ollama } from "ollama/browser";
 
+const ollama_schema = {
+  type: "object",
+  properties: {
+    tags: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["tags"],
+};
+
 function createTagElement(tag) {
   const tagElement = document.createElement("span");
   tagElement.className = "tag";
@@ -53,9 +64,8 @@ async function generateTagsWithOllama(title, description) {
     // Use custom prompt if available, otherwise use default
     let promptTemplate =
       ollamaPrompt ||
-      `Generate 3-5 relevant tags for this content.
-      Return only the tags as a JSON array of strings.
-      No additional explanation needed.
+      `Generate 3 or more relevant tags for this content.
+      return as JSON
 
       Title: {{title}}
       Description: {{description}}`;
@@ -76,40 +86,16 @@ async function generateTagsWithOllama(title, description) {
       options: {
         temperature: 0.3,
       },
+      format: ollama_schema,
     });
 
     // Hide loading indicator
     document.getElementById("tagsLoading").style.display = "none";
 
-    // Try to parse the response as JSON
-    try {
-      // The response might include markdown backticks or other text
-      // Try to extract just the JSON array
-      const jsonMatch = response.response.match(/\[.*\]/);
-      if (jsonMatch) {
-        const tags = JSON.parse(jsonMatch[0]);
-        return tags;
-      }
-      // If the entire response is valid JSON, use it
-      return JSON.parse(response.response);
-    } catch (parseError) {
-      // If parsing fails, try to extract tags using regex
-      console.warn(
-        "Couldn't parse Ollama response as JSON, extracting tags manually",
-        parseError,
-      );
-      const tagsPattern = /"([^"]+)"|'([^']+)'|`([^`]+)`|([a-zA-Z0-9-_]+)/g;
-      const extractedTags = [];
-      let match;
+    console.log(response);
+    let tags = JSON.parse(response.response).tags;
 
-      while ((match = tagsPattern.exec(response.response)) !== null) {
-        // Take the first capturing group that matched
-        const tag = match[1] || match[2] || match[3] || match[4];
-        if (tag) extractedTags.push(tag);
-      }
-
-      return extractedTags;
-    }
+    return tags;
   } catch (error) {
     // Hide loading indicator
     document.getElementById("tagsLoading").style.display = "none";
