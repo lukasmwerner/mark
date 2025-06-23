@@ -159,11 +159,11 @@ func (m rootAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, m.input.Focus())
 				return m, tea.Batch(cmds...)
 			}
-		case "j", "up":
+		case "j", "down":
 			if m.mode == NORMAL && m.currentIndex+1 <= m.rowsCount {
 				m.currentIndex += 1
 			}
-		case "k", "down":
+		case "k", "up":
 			if m.mode == NORMAL && m.currentIndex-1 != 0 {
 				m.currentIndex -= 1
 			}
