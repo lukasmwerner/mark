@@ -105,14 +105,14 @@ func Open() (*DB, error) {
 	default:
 		ext = ".so"
 	}
-	if !DoesFileExist(path.Join(homedir, ".lib", "crsqlite"+ext)) {
-		err = downloadCrSqlite(path.Join(homedir, ".lib"), "crsqlite"+ext)
+	if !DoesFileExist(path.Join(markStoreLocation, "crsqlite"+ext)) {
+		err = downloadCrSqlite(markStoreLocation, "crsqlite"+ext)
 		if err != nil {
 			return nil, errors.Join(errors.New("unable to download crsqlite"), err)
 		}
 	}
 	sql.Register("cr-sqlite", &sqlite3.SQLiteDriver{
-		Extensions: []string{path.Join(homedir, ".lib", "crsqlite")},
+		Extensions: []string{path.Join(markStoreLocation, "crsqlite")},
 	})
 
 	sqlDB, err := sql.Open("cr-sqlite", path.Join(markStoreLocation, "data.db"))
