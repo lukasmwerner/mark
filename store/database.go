@@ -8,10 +8,13 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 
 	"github.com/mattn/go-sqlite3"
 )
+
+const CRSQLITE_VERSION = "v0.16.3"
 
 type requirement struct {
 	name       string
@@ -77,11 +80,11 @@ END;`,
 
 func Open() (*DB, error) {
 	markStoreLocation := os.Getenv("MARK_STORE_LOCATION")
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, errors.Join(errors.New("unable to get homedir"), err)
+	}
 	if markStoreLocation == "" {
-		homedir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, errors.Join(errors.New("unable to get homedir"), err)
-		}
 		markStoreLocation = path.Join(homedir, ".config", "mark")
 	}
 
@@ -93,8 +96,23 @@ func Open() (*DB, error) {
 		return nil, errors.Join(errors.New("unable to make mark store changes location in: "+markStoreLocation), err)
 	}
 
+	var ext string
+	switch runtime.GOOS {
+	case "windows":
+		ext = ".dll"
+	case "darwin":
+		ext = ".dylib"
+	default:
+		ext = ".so"
+	}
+	if !DoesFileExist(path.Join(markStoreLocation, "crsqlite"+ext)) {
+		err = downloadCrSqlite(markStoreLocation, "crsqlite"+ext)
+		if err != nil {
+			return nil, errors.Join(errors.New("unable to download crsqlite"), err)
+		}
+	}
 	sql.Register("cr-sqlite", &sqlite3.SQLiteDriver{
-		Extensions: []string{"crsqlite"},
+		Extensions: []string{path.Join(markStoreLocation, "crsqlite")},
 	})
 
 	sqlDB, err := sql.Open("cr-sqlite", path.Join(markStoreLocation, "data.db"))
