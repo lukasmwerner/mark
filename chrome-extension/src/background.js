@@ -33,7 +33,7 @@ async function checkIfBookmarked(tabId) {
 	chrome.tabs.sendMessage(
 		tabId,
 		{ action: "getPageInfo" },
-		async function (tab_reponse) {
+		async function(tab_reponse) {
 			if (chrome.runtime.lastError) {
 				console.error("Could not connect to page");
 				return;
@@ -51,10 +51,9 @@ async function checkIfBookmarked(tabId) {
 
 				// Check if the URL is bookmarked
 				const response = await fetch(
-					`http://localhost:1990/api/bookmarks?url=${
-						encodeURIComponent(
-							tab_reponse.url,
-						)
+					`http://localhost:1990/api/bookmarks?url=${encodeURIComponent(
+						tab_reponse.url,
+					)
 					}`,
 					{
 						method: "GET",
@@ -207,7 +206,7 @@ async function quickSave(tab) {
 		chrome.tabs.sendMessage(
 			tab.id,
 			{ action: "getPageInfo" },
-			async function (response) {
+			async function(response) {
 				if (chrome.runtime.lastError) {
 					console.error("Could not connect to page");
 					return;
