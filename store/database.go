@@ -14,6 +14,8 @@ import (
 	"github.com/mattn/go-sqlite3"
 )
 
+const CRSQLITE_VERSION = "v0.16.3"
+
 type requirement struct {
 	name       string
 	definition string
@@ -103,9 +105,14 @@ func Open() (*DB, error) {
 	default:
 		ext = ".so"
 	}
-
+	if !DoesFileExist(path.Join(homedir, ".lib", "crsqlite"+ext)) {
+		err = downloadCrSqlite(path.Join(homedir, ".lib"), "crsqlite"+ext)
+		if err != nil {
+			return nil, errors.Join(errors.New("unable to download crsqlite"), err)
+		}
+	}
 	sql.Register("cr-sqlite", &sqlite3.SQLiteDriver{
-		Extensions: []string{path.Join(homedir, ".lib", "crsqlite"+ext)},
+		Extensions: []string{path.Join(homedir, ".lib", "crsqlite")},
 	})
 
 	sqlDB, err := sql.Open("cr-sqlite", path.Join(markStoreLocation, "data.db"))
