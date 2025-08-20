@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 
 	"github.com/mattn/go-sqlite3"
@@ -77,11 +78,11 @@ END;`,
 
 func Open() (*DB, error) {
 	markStoreLocation := os.Getenv("MARK_STORE_LOCATION")
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, errors.Join(errors.New("unable to get homedir"), err)
+	}
 	if markStoreLocation == "" {
-		homedir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, errors.Join(errors.New("unable to get homedir"), err)
-		}
 		markStoreLocation = path.Join(homedir, ".config", "mark")
 	}
 
@@ -93,8 +94,18 @@ func Open() (*DB, error) {
 		return nil, errors.Join(errors.New("unable to make mark store changes location in: "+markStoreLocation), err)
 	}
 
+	var ext string
+	switch runtime.GOOS {
+	case "windows":
+		ext = ".dll"
+	case "darwin":
+		ext = ".dylib"
+	default:
+		ext = ".so"
+	}
+
 	sql.Register("cr-sqlite", &sqlite3.SQLiteDriver{
-		Extensions: []string{"crsqlite"},
+		Extensions: []string{path.Join(homedir, ".lib", "crsqlite"+ext)},
 	})
 
 	sqlDB, err := sql.Open("cr-sqlite", path.Join(markStoreLocation, "data.db"))
