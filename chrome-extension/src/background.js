@@ -101,7 +101,7 @@ async function initOllamaClient() {
 
 		// Default to local Ollama instance and a general model if not configured
 		const endpoint = ollamaEndpoint || "http://localhost:11434";
-		const model = ollamaModel || "gemma:7b";
+		const model = ollamaModel || "lukasmwerner/mark-tagger:1b";
 
 		ollamaClient = new Ollama({
 			host: endpoint,
@@ -157,7 +157,7 @@ async function generateTagsWithOllama(url, title, description) {
 			"ollamaModel",
 			"ollamaPrompt",
 		]);
-		const model = ollamaModel || "gemma:7b";
+		const model = ollamaModel || "lukasmwerner/mark-tagger:1b";
 
 		// Use custom prompt if available, otherwise use default
 		let promptTemplate = ollamaPrompt ||

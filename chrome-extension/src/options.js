@@ -1,7 +1,7 @@
 import { Ollama } from "ollama/browser";
 import { ollama_schema } from "./schema";
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function() {
 	// Load saved settings
 	chrome.storage.sync.get(
 		[
@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
 			"ollamaTemperature",
 			"enableAutoTagging",
 		],
-		function (result) {
+		function(result) {
 			console.log(result);
 			if (result.apiToken) {
 				document.getElementById("tokenInput").value = result.apiToken;
@@ -55,13 +55,13 @@ Description: {{description}}`;
 	// Save settings
 	document
 		.getElementById("saveSettings")
-		.addEventListener("click", function () {
+		.addEventListener("click", function() {
 			const token = document.getElementById("tokenInput").value;
 			const ollamaEndpoint =
 				document.getElementById("ollamaEndpoint").value ||
 				"http://localhost:11434";
 			const ollamaModel = document.getElementById("ollamaModel").value ||
-				"gemma:7b";
+				"lukasmwerner/mark-tagger:1b";
 			const ollamaPrompt =
 				document.getElementById("ollamaPrompt").value ||
 				`Generate 3-5 relevant tags for this content. Return only the tags as a JSON array of strings. No additional explanation needed.
@@ -84,7 +84,7 @@ Description: {{description}}`;
 					ollamaTemperature: ollamaTemperature.valueOf(),
 					enableAutoTagging: enableAutoTagging,
 				},
-				function () {
+				function() {
 					updateStatus("Settings saved successfully!");
 				},
 			);
@@ -93,7 +93,7 @@ Description: {{description}}`;
 	// Test Ollama connection
 	document
 		.getElementById("testOllama")
-		.addEventListener("click", async function () {
+		.addEventListener("click", async function() {
 			try {
 				updateStatus("Testing Ollama connection...");
 
@@ -101,7 +101,7 @@ Description: {{description}}`;
 					document.getElementById("ollamaEndpoint").value ||
 					"http://localhost:11434";
 				const model = document.getElementById("ollamaModel").value ||
-					"gemma:7b";
+					"lukasmwerner/mark-tagger:1b";
 
 				const ollama = new Ollama({
 					host: endpoint,
@@ -119,8 +119,7 @@ Description: {{description}}`;
 					);
 				} else {
 					updateStatus(
-						`Connection successful, but model "${model}" was not found. Available models: ${
-							models.models.map((m) => m.name).join(", ")
+						`Connection successful, but model "${model}" was not found. Available models: ${models.models.map((m) => m.name).join(", ")
 						}`,
 					);
 				}
@@ -133,7 +132,7 @@ Description: {{description}}`;
 	// Test prompt for tag generation
 	document
 		.getElementById("testPrompt")
-		.addEventListener("click", async function () {
+		.addEventListener("click", async function() {
 			try {
 				updateStatus("Testing tag generation...");
 

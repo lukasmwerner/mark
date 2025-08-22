@@ -278,6 +278,21 @@ func UpdateBookmark(db *DB, original Bookmark, updated Bookmark) error {
 	return err
 }
 
+func DeleteBookmark(db *DB, bookmark Bookmark) error {
+	_, err := db.Exec(`DELETE FROM Bookmarks
+	WHERE
+		url = ? AND
+		title = ? AND
+		description = ? AND
+		tags = ?;`,
+		bookmark.Url,
+		bookmark.Title,
+		bookmark.Description,
+		strings.Join(bookmark.Tags, ", "),
+	)
+	return err
+}
+
 func AddKey(db *DB, key string) error {
 	_, err := db.Exec("INSERT INTO Server_Keys (key) VALUES (?)", key)
 	if err != nil {

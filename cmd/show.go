@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/lukasmwerner/mark/store"
 	"github.com/spf13/cobra"
 )
@@ -77,7 +78,7 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// showCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	showCmd.Flags().StringVarP(&outputMode, "mode", "m", "json", "Output mode: json,csv")
+	showCmd.Flags().StringVarP(&outputMode, "mode", "m", "pretty", "Output mode: json,csv,pretty")
 }
 
 func outputBookmark(mode string, bookmark store.Bookmark) {
@@ -90,6 +91,18 @@ func outputBookmark(mode string, bookmark store.Bookmark) {
 		w.Write([]string{"Title", "Description", "Tags", "URL"})
 		w.Write([]string{bookmark.Title, bookmark.Description, strings.Join(bookmark.Tags, ","), bookmark.Url})
 		w.Flush()
-
+	case "pretty":
+		fmt.Print(prettyOutput(bookmark))
 	}
+}
+
+var categoryColorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#34A77C"))
+
+func prettyOutput(bm store.Bookmark) string {
+	out := ""
+	out += categoryColorStyle.Render("Title: ") + bm.Title + "\n"
+	out += categoryColorStyle.Render("URL: ") + bm.Url + "\n"
+	out += categoryColorStyle.Render("Tags: ") + strings.Join(bm.Tags, ", ") + "\n"
+	out += categoryColorStyle.Render("Description: ") + bm.Description + "\n"
+	return out
 }
