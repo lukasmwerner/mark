@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", function() {
 			"ollamaModel",
 			"ollamaPrompt",
 			"ollamaTemperature",
-			"enableAutoTagging",
 		],
 		function(result) {
 			console.log(result);
@@ -45,10 +44,6 @@ Title: {{title}}
 URL: {{url}}
 Description: {{description}}`;
 			}
-
-			// Set auto-tagging checkbox
-			document.getElementById("enableAutoTagging").checked =
-				result.enableAutoTagging !== false; // Default to true
 		},
 	);
 

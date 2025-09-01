@@ -1,5 +1,4 @@
-import { Ollama } from "ollama/browser";
-import { ollama_schema } from "./schema";
+import { generateTagsWithOllama } from "./tag_generation";
 
 function createTagElement(tag) {
 	const tagElement = document.createElement("span");
@@ -35,91 +34,20 @@ function updateStatus(message) {
 	status.textContent = message;
 }
 
-async function generateTagsWithOllama(url, title, description) {
-	try {
-		// Show loading indicator
-		document.getElementById("tagsLoading").style.display = "flex";
-
-		// Get Ollama settings
-		const {
-			ollamaEndpoint,
-			ollamaModel,
-			ollamaPrompt,
-			ollamaTemperature: temperature,
-		} = await chrome.storage.sync.get([
-			"ollamaEndpoint",
-			"ollamaModel",
-			"ollamaPrompt",
-			"ollamaTemperature",
-		]);
-
-		const endpoint = ollamaEndpoint || "http://localhost:11434";
-		const model = ollamaModel || "lukasmwerner/mark-tagger:1b";
-
-		// Use custom prompt if available, otherwise use default
-		let promptTemplate = ollamaPrompt ||
-			`Generate 3 or more relevant tags for this content.
-      return as JSON
-
-      Title: {{title}}
-	  URL: {{url}}
-      Description: {{description}}`;
-
-		// Replace placeholders with actual content
-		const prompt = promptTemplate
-			.replace(/{{title}}/g, title)
-			.replace(/{{url}}/g, url)
-			.replace(/{{description}}/g, description);
-
-		// Initialize Ollama client
-		const ollamaClient = new Ollama({
-			host: endpoint,
-		});
-
-		const response = await ollamaClient.generate({
-			model: model,
-			prompt: prompt,
-			options: {
-				temperature: temperature || 0.3,
-			},
-			format: ollama_schema,
-		});
-
-		// Hide loading indicator
-		document.getElementById("tagsLoading").style.display = "none";
-
-		console.log(response);
-		let tags = JSON.parse(response.response).tags;
-
-		tags = tags.map(v => v.toLowerCase())
-		return tags;
-	} catch (error) {
-		// Hide loading indicator
-		document.getElementById("tagsLoading").style.display = "none";
-
-		console.error("Error generating tags with Ollama:", error);
-		updateStatus(`Error generating tags: ${error.message}`);
-		return [];
-	}
-}
 
 let pageInfo = null;
 let tags = new Set();
 
 async function initializeDetailedSave() {
 	try {
-		// Get the stored page info
-		const data = await chrome.storage.local.get("tempPageInfo");
-		if (data.tempPageInfo) {
-			pageInfo = data.tempPageInfo;
-			document.getElementById("title").value = pageInfo.title;
-			document.getElementById("description").value = pageInfo.description;
-
-			// Clean up the stored data
-			chrome.storage.local.remove("tempPageInfo");
-		} else {
-			updateStatus("Error: No page data available");
-		}
+		const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+		if (!tabs[0]) return;
+		const response = await chrome.tabs.sendMessage(tabs[0].id, {
+			action: "getPageInfo",
+		});
+		pageInfo = response;
+		document.getElementById("title").value = pageInfo.title;
+		document.getElementById("description").value = pageInfo.description;
 	} catch (error) {
 		updateStatus("Error: Could not load page data");
 		console.error(error);
@@ -210,4 +138,7 @@ async function initializeDetailedSave() {
 		});
 }
 
-document.addEventListener("DOMContentLoaded", initializeDetailedSave);
+document.addEventListener("DOMContentLoaded", function() {
+	console.log("dom loaded!")
+	initializeDetailedSave()
+});
