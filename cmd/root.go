@@ -9,11 +9,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
+	tables "github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
 	"github.com/cli/browser"
+	"github.com/lukasmwerner/mark/helpers"
 	"github.com/lukasmwerner/mark/store"
 	"github.com/spf13/cobra"
 )
@@ -41,9 +43,8 @@ var (
 
 	statusBackground = lipgloss.Color("238")
 
-	headerStyle = lipgloss.NewStyle().
-			BorderForeground(lipgloss.Color("240")).
-			Bold(true)
+	tableStyle = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder())
 
 	selectedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("229")).
@@ -62,8 +63,7 @@ var (
 type rootAppModel struct {
 	db           *store.DB
 	input        textinput.Model
-	table        *table.Table
-	rows         []store.Bookmark
+	table        tables.Model
 	currentIndex int
 	width        int
 	height       int
@@ -75,7 +75,7 @@ func (m rootAppModel) Init() tea.Cmd { return nil }
 
 func (m rootAppModel) updateTable() rootAppModel {
 
-	bmCount := len(m.rows)
+	bmCount := m.rowsCount
 
 	bookmarks, err := store.SearchBookmarks(m.db, m.input.Value())
 	if err != nil {
@@ -87,18 +87,13 @@ func (m rootAppModel) updateTable() rootAppModel {
 		return m
 	}
 
-	if m.rowsCount != 0 {
-		m.table.ClearRows()
-		m.table.Data(table.NewStringData()) // BUG: here for clearing idk why but yeah datatype needs setup
-	}
-
-	m.rows = bookmarks
 	m.rowsCount = len(bookmarks)
-	m.currentIndex = 1
+	rows := make([]tables.Row, m.rowsCount)
 
-	for _, bookmark := range bookmarks {
-		m.table.Row(strings.TrimSpace(bookmark.Title), bookmark.Description, strings.Join(bookmark.Tags, ","), bookmark.Url)
+	for i, bookmark := range bookmarks {
+		rows[i] = []string{strings.TrimSpace(bookmark.Title), bookmark.Description, strings.Join(bookmark.Tags, ","), bookmark.Url}
 	}
+	m.table.SetRows(rows)
 
 	return m
 }
@@ -109,7 +104,10 @@ func (m rootAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.table.Width(msg.Width).Height(msg.Height - 3)
+		m.input.Width = msg.Width
+		m.table.SetColumns(resizeCols(msg.Width-10, msg.Height, m.table.Columns()))
+		m.table.SetHeight(msg.Height - 4)
+		m.table.SetWidth(msg.Width - 2)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
@@ -120,38 +118,37 @@ func (m rootAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.mode {
 			case SEARCH:
 				m.input.Blur()
+				m.table.Focus()
 				m = m.updateTable()
 			case PREVIEW:
-				break
+				m.table.Focus()
 			}
 			m.mode = NORMAL
 
 		case " ":
-			if m.mode == NORMAL {
+			switch m.mode {
+			case NORMAL:
 				m.mode = PREVIEW
-			} else if m.mode == PREVIEW {
+				m.table.Blur()
+			case PREVIEW:
 				m.mode = NORMAL
+				m.table.Focus()
 			}
 
 		case "enter":
 			switch m.mode {
 			case NORMAL:
-				// TODO: open active link
-				if m.currentIndex <= m.rowsCount {
-					url := m.rows[m.currentIndex-1].Url
-					browser.OpenURL(url)
-				}
+				url := m.table.SelectedRow()[3]
+				browser.OpenURL(url)
 			case PREVIEW:
-				if m.currentIndex <= m.rowsCount {
-					url := m.rows[m.currentIndex-1].Url
-					browser.OpenURL(url)
-				}
+				url := m.table.SelectedRow()[3]
+				browser.OpenURL(url)
 				m.mode = NORMAL
 			case SEARCH:
 				m.mode = NORMAL
 				m.input.Blur()
+				m.table.SetCursor(0)
 				m = m.updateTable()
-				break
 			}
 		case "i":
 			if m.mode == NORMAL {
@@ -159,16 +156,7 @@ func (m rootAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, m.input.Focus())
 				return m, tea.Batch(cmds...)
 			}
-		case "j", "down":
-			if m.mode == NORMAL && m.currentIndex+1 <= m.rowsCount {
-				m.currentIndex += 1
-			}
-		case "k", "up":
-			if m.mode == NORMAL && m.currentIndex-1 != 0 {
-				m.currentIndex -= 1
-			}
 		}
-
 	}
 
 	if m.mode == SEARCH && m.input.Focused() {
@@ -177,11 +165,27 @@ func (m rootAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
+	if m.mode == NORMAL {
+		var cmd tea.Cmd
+		m.table, cmd = m.table.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
 	return m, tea.Batch(cmds...)
 }
 
-func (m rootAppModel) View() string {
+func resizeCols(width, _ int, cols []tables.Column) []tables.Column {
+	newCols := make([]tables.Column, 4)
+	copy(newCols, cols)
 
+	newCols[0].Width = int(width / 4) // Title
+	newCols[1].Width = int(width / 4) // Description
+	newCols[2].Width = int(width / 4) // Tags
+	newCols[3].Width = int(width / 4) // URL
+	return newCols
+}
+
+func (m rootAppModel) View() string {
 	statusBar := ""
 	switch m.mode {
 	case NORMAL:
@@ -193,37 +197,26 @@ func (m rootAppModel) View() string {
 	}
 	statusBar = lipgloss.PlaceHorizontal(m.width, lipgloss.Left, statusBar, lipgloss.WithWhitespaceBackground(statusBackground))
 
+	table := lipgloss.PlaceVertical(m.height-2, lipgloss.Top, tableStyle.Render(m.table.View()))
+
+	screen := lipgloss.JoinVertical(lipgloss.Left, m.input.View(), table, statusBar)
+
 	if m.mode == PREVIEW {
+
 		textSty := lipgloss.NewStyle().Width(m.width - 4).Align(lipgloss.Left)
 
-		contents := "title: " + m.rows[m.currentIndex-1].Title + "\n"
-		contents += "tags: " + strings.Join(m.rows[m.currentIndex-1].Tags, ", ") + "\n"
-		contents += "url: " + m.rows[m.currentIndex-1].Url + "\n"
-		contents += "desc: \n" + textSty.Render(m.rows[m.currentIndex-1].Description)
+		contents := categoryColorStyle.Render("title: ") + m.table.SelectedRow()[0] + "\n"
+		contents += categoryColorStyle.Render("tags: ") + m.table.SelectedRow()[2] + "\n"
+		contents += categoryColorStyle.Render("url: ") + m.table.SelectedRow()[3] + "\n"
+		contents += categoryColorStyle.Render("desc: ") + textSty.Render(m.table.SelectedRow()[1])
 
-		modal := modalstyle.Width(m.width - 4).Render(contents)
-
-		centered := lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, modal)
-
-		return lipgloss.JoinVertical(lipgloss.Center, centered, statusBar)
+		modal := modalstyle.Width(2 * (m.width / 3)).Render(contents)
+		modalLeft := (m.width / 2) - (lipgloss.Width(modal) / 2)
+		modalRight := (m.height / 2) - (lipgloss.Height(modal) / 2)
+		return helpers.PlaceOverlay(modalLeft, modalRight, modal, screen, true)
 	}
 
-	m.table.StyleFunc(func(row, col int) lipgloss.Style {
-		switch {
-		case row == 0:
-			return headerStyle
-		case row == m.currentIndex && m.mode == NORMAL:
-			return selectedStyle
-		case row == m.currentIndex && m.mode == SEARCH:
-			return unactiveSelectedStyle
-		default:
-			return lipgloss.NewStyle()
-		}
-	})
-
-	table := lipgloss.PlaceVertical(m.height-2, lipgloss.Top, m.table.Render())
-
-	return lipgloss.JoinVertical(lipgloss.Left, m.input.View(), table, statusBar)
+	return screen
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -246,16 +239,34 @@ file sync service. This is sort-of explained the following blog post:
 
 		defer db.Close()
 
-		t := table.New()
+		t := tables.New(tables.WithColumns([]tables.Column{
+			{
+				Title: "Title",
+				Width: 10,
+			},
+			{
+				Title: "Description",
+				Width: 10,
+			},
+			{
+				Title: "Tags",
+				Width: 10,
+			},
+			{
+				Title: "URL",
+				Width: 10,
+			},
+		}))
+		tableStyles := tables.DefaultStyles()
+		tableStyles.Selected = selectedStyle
+		t.SetStyles(tableStyles)
+		t.Focus()
+		t.KeyMap.PageDown = key.NewBinding(key.WithKeys("f", "pgdown"), key.WithHelp("f/pgdn", "page down"))
 
 		input := textinput.New()
 		input.Placeholder = "Search / Filter"
 
 		m := rootAppModel{db: db, table: t, input: input, currentIndex: 1, rowsCount: 0, mode: NORMAL}
-
-		t.Border(lipgloss.NormalBorder())
-
-		t.Headers("Title", "Description", "Tags", "URL")
 
 		prog := tea.NewProgram(m, tea.WithAltScreen())
 
