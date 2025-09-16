@@ -67,8 +67,6 @@ Description: {{description}}`;
 			const ollamaTemperature = new Number(
 				document.getElementById("ollamaTemperature").value,
 			) || 0.3;
-			const enableAutoTagging =
-				document.getElementById("enableAutoTagging").checked;
 
 			chrome.storage.sync.set(
 				{
@@ -77,7 +75,6 @@ Description: {{description}}`;
 					ollamaModel: ollamaModel,
 					ollamaPrompt: ollamaPrompt,
 					ollamaTemperature: ollamaTemperature.valueOf(),
-					enableAutoTagging: enableAutoTagging,
 				},
 				function() {
 					updateStatus("Settings saved successfully!");
