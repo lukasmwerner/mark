@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
 	"os"
 	"strings"
@@ -82,6 +83,11 @@ var sqlCmd = &cobra.Command{
 				query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
 			} else if input == ".schema" {
 				query = "SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name;"
+			} else if search, ok := strings.CutPrefix(input, ".search "); ok {
+				rows, _ := db.Query("SELECT * FROM Bookmarks_fts WHERE Bookmarks_fts MATCH ?;", search)
+				renderResults(rows)
+				query = ""
+				continue
 			} else {
 				// Append to current query if it doesn't end with semicolon
 				if !strings.HasSuffix(query, ";") && query != "" {
@@ -93,7 +99,8 @@ var sqlCmd = &cobra.Command{
 
 			// Execute only if query ends with semicolon
 			if strings.HasSuffix(query, ";") {
-				executeQuery(db, query)
+				rows, _ := executeQuery(db, query)
+				renderResults(rows)
 				query = ""
 			}
 		}
@@ -114,24 +121,18 @@ func init() {
 	// sqlCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func executeQuery(db *store.DB, query string) {
-	query = strings.TrimSpace(query)
-
-	rows, err := db.Query(query)
-	if err != nil {
-		fmt.Println(errorStyle.Render("Error: " + err.Error()))
+func renderResults(rows *sql.Rows) {
+	if rows == nil {
 		return
 	}
-	defer rows.Close()
-
 	columns, err := rows.Columns()
 	if err != nil {
 		fmt.Println(errorStyle.Render("Error getting columns: " + err.Error()))
 		return
 	}
 
-	values := make([]interface{}, len(columns))
-	valuePtrs := make([]interface{}, len(columns))
+	values := make([]any, len(columns))
+	valuePtrs := make([]any, len(columns))
 	for i := range columns {
 		valuePtrs[i] = &values[i]
 	}
@@ -177,14 +178,27 @@ func executeQuery(db *store.DB, query string) {
 	}
 
 	fmt.Printf("Query executed successfully. %d row(s) returned.\n", rowCount)
+
+}
+
+func executeQuery(db *store.DB, query string) (*sql.Rows, error) {
+	query = strings.TrimSpace(query)
+
+	rows, err := db.Query(query)
+	if err != nil {
+		fmt.Println(errorStyle.Render("Error: " + err.Error()))
+		return nil, err
+	}
+	return rows, err
 }
 
 func printHelp() {
 	fmt.Println("Available commands:")
-	fmt.Println("  .help, ?    - Show this help")
+	fmt.Println("  .help, ?     - Show this help")
 	fmt.Println("  .exit, .quit - Exit the REPL")
-	fmt.Println("  .tables     - List all tables")
-	fmt.Println("  .schema     - Show schema for all tables")
+	fmt.Println("  .tables      - List all tables")
+	fmt.Println("  .schema      - Show schema for all tables")
+	fmt.Println("  .search 		- Use FTS search for tables")
 	fmt.Println("")
 	fmt.Println("Notes:")
 	fmt.Println("- SQL queries can span multiple lines until a semicolon is entered")
