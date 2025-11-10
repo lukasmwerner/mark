@@ -3,6 +3,9 @@ import { description_schema } from "./schema"
 
 async function generateDescription(title, url, content) {
 	try {
+		// Show loading indicator
+		document.getElementById("descLoading").style.display = "flex";
+
 		// Get Ollama settings
 		const {
 			ollamaEndpoint,
@@ -45,10 +48,16 @@ Document: {{content}}`;
 			format: description_schema,
 		});
 
+		// Hide loading indicator
+		document.getElementById("descLoading").style.display = "none";
+
 		let desc = JSON.parse(response.response).description;
 
 		return desc;
 	} catch (error) {
+		// Hide loading indicator
+		document.getElementById("descLoading").style.display = "none";
+
 		console.error("Error generating description with Ollama:", error);
 		updateStatus(`Error generating description: ${error.message}`);
 		return [];
