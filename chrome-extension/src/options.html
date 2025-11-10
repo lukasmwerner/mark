@@ -1,139 +1,154 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-    <head>
-        <title>Bookmark Sender Settings</title>
-        <style>
-            body {
-                padding: 20px;
-                max-width: 600px;
-                margin: 0 auto;
-                font-family: system-ui, sans-serif;
-            }
-            .container {
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-            }
-            .field {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-            }
-            input {
-                padding: 8px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 14px;
-            }
-            button {
-                padding: 8px 16px;
-                background: #4285f4;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 14px;
-                max-width: fit-content;
-            }
-            button:hover {
-                background: #3367d6;
-            }
-            #status {
-                color: #666;
-                margin-top: 16px;
-            }
-            .section {
-                border-top: 1px solid #eee;
-                padding-top: 16px;
-                margin-top: 16px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h2>Bookmark Sender Settings</h2>
-            <div class="field">
-                <label for="tokenInput">API Token:</label>
-                <input
-                    type="password"
-                    id="tokenInput"
-                    placeholder="Enter your API token"
-                />
-            </div>
+	<head>
+		<title>mark-browser Settings</title>
+		<style>
+			body {
+				padding: 20px;
+				max-width: 600px;
+				margin: 0 auto;
+				font-family: system-ui, sans-serif;
+			}
+			.container {
+				display: flex;
+				flex-direction: column;
+				gap: 16px;
+			}
+			.field {
+				display: flex;
+				flex-direction: column;
+				gap: 8px;
+			}
+			input {
+				padding: 8px;
+				border: 1px solid #ccc;
+				border-radius: 4px;
+				font-size: 14px;
+			}
+			button {
+				padding: 8px 16px;
+				background: #4285f4;
+				color: white;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+				font-size: 14px;
+				max-width: fit-content;
+			}
+			button:hover {
+				background: #3367d6;
+			}
+			#status {
+				color: #666;
+				margin-top: 16px;
+			}
+			.section {
+				border-top: 1px solid #eee;
+				padding-top: 16px;
+				margin-top: 16px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h2>mark-browser Settings</h2>
+			<div class="field">
+				<label for="tokenInput">API Token:</label>
+				<input type="password" id="tokenInput" placeholder="Enter your API token">
+			</div>
 
-            <div class="section">
-                <h3>Ollama Auto-Tagging Settings</h3>
-                <div class="field">
-                    <label for="ollamaEndpoint">Ollama Endpoint:</label>
-                    <input
-                        type="text"
-                        id="ollamaEndpoint"
-                        placeholder="http://localhost:11434"
-                    />
-                </div>
-                <div class="field">
-                    <label for="ollamaModel">Ollama Model:</label>
-                    <input
-                        type="text"
-                        id="ollamaModel"
-                        placeholder="lukasmwerner/mark-tagger:1b"
-                    />
-                </div>
-                <div class="field">
-                    <label for="ollamaTemperature">Ollama Temperature:</label>
-                    <input
-                        type="number"
-                        id="ollamaTemperature"
-                        placeholder="0.3"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                    />
-                </div>
-                <div class="field">
-                    <label for="ollamaPrompt">Custom Prompt Template:</label>
-                    <textarea
-                        id="ollamaPrompt"
-                        rows="6"
-                        style="
+			<div class="section">
+				<h3>Ollama Settings</h3>
+				<div class="field">
+					<label for="ollamaEndpoint">Ollama Endpoint:</label>
+					<input type="text" id="ollamaEndpoint" placeholder="http://localhost:11434">
+				</div>
+
+				<h4>Summarization Model</h4>
+				<div class="field">
+					<label for="ollamaSummaryModel">Ollama Summary Model:</label>
+					<input type="text" id="ollamaSummaryModel" placeholder="lukasmwerner/mark-tagger:1b">
+				</div>
+				<div class="field">
+					<label for="ollamaSummaryTemperature">Ollama Summary Temperature:</label>
+					<input type="number" id="ollamaSummaryTemperature" placeholder="0.3" min="0" max="1" step="0.1">
+				</div>
+				<div class="field">
+					<label for="ollamaSummaryPrompt">Summary Prompt Template:</label>
+					<textarea id="ollamaSummaryPrompt"
+					          rows="6"
+					          style="
                             resize: vertical;
                             font-family: monospace;
                             font-size: 13px;
                         "
-                        placeholder="Generate 3-5 relevant tags for this content. Return only the tags as a JSON array of strings. No additional explanation needed.
+					          placeholder="URL: {{url}}
+Content:
+{{content}}
+
+Title:
+{{title}}
+
+Please write a short google search style description for the following webpage. Avoid describing the overall website and focus on the content on the page. Avoid phrases like 'news article about'. Return only the description as in the json object as a string. No additional explanation needed."
+					></textarea>
+					<p style="margin-top: 4px; font-size: 12px; color: #666">
+						You can use {{title}}, {{url}} and {{content}} as placeholders that
+						will be replaced with content from the current page.
+					</p>
+				</div>
+
+				<h4>Tagging Model</h4>
+
+				<div class="field">
+					<label for="ollamaModel">Ollama Tagging Model:</label>
+					<input type="text" id="ollamaModel" placeholder="lukasmwerner/mark-tagger:1b">
+				</div>
+				<div class="field">
+					<label for="ollamaTemperature">Ollama Tagging Temperature:</label>
+					<input type="number" id="ollamaTemperature" placeholder="0.3" min="0" max="1" step="0.1">
+				</div>
+				<div class="field">
+					<label for="ollamaPrompt">Tagging Prompt Template:</label>
+					<textarea id="ollamaPrompt"
+					          rows="6"
+					          style="
+                            resize: vertical;
+                            font-family: monospace;
+                            font-size: 13px;
+                        "
+					          placeholder="Generate 3-5 relevant tags for this content. Return only the tags as a JSON array of strings. No additional explanation needed.
 
 Title: {{title}}
 Description: {{description}}"
-                    ></textarea>
-                    <p style="margin-top: 4px; font-size: 12px; color: #666">
-                        Use {{title}} and {{description}} as placeholders that
-                        will be replaced with the actual content.
-                    </p>
-                </div>
-                <div class="field">
-                    <button id="testOllama">Test Ollama Connection</button>
-                </div>
-                <div class="field">
-                    <button id="testPrompt">Test Tag Generation</button>
-                    <div
-                        id="promptTestResults"
-                        style="
+					></textarea>
+					<p style="margin-top: 4px; font-size: 12px; color: #666">
+						You can use {{title}}, {{url}} and {{description}} as placeholders that
+						will be replaced with content from the current page.
+					</p>
+
+				<div class="field">
+					<button id="testOllama">Test Ollama Connection</button>
+				</div>
+				<div class="field">
+					<button id="testPrompt">Test Tag Generation</button>
+					<div id="promptTestResults"
+					     style="
                             margin-top: 8px;
                             padding: 10px;
                             background-color: #f7f7f7;
                             border-radius: 4px;
                             display: none;
                         "
-                    >
-                        <h4 style="margin-top: 0">Generated Tags:</h4>
-                        <div id="generatedTags"></div>
-                    </div>
-                </div>
-            </div>
+					>
+						<h4 style="margin-top: 0">Generated Tags:</h4>
+						<div id="generatedTags"></div>
+					</div>
+				</div>
+			</div>
 
-            <button id="saveSettings">Save Settings</button>
-            <div id="status"></div>
-        </div>
-        <script src="options.js"></script>
-    </body>
+			<button id="saveSettings">Save Settings</button>
+			<div id="status"></div>
+		</div>
+		<script src="options.js"></script>
+	</body>
 </html>

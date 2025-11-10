@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      html-to-markdown-wasm:
+        specifier: ^2.5.6
+        version: 2.5.6
       ollama:
         specifier: ^0.5.16
         version: 0.5.16
@@ -265,6 +268,9 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
+  html-to-markdown-wasm@2.5.6:
+    resolution: {integrity: sha512-YQxvcN5KjrZAinKxI26p66f3sP+j6mG6SCF3JhwzvnicVPfC6v7rYMMlAa7BuyhemIywKO2IlAyuzWwCS2VOZA==}
+
   import-local@3.2.0:
     resolution: {integrity: sha512-2SPlun1JUPWoM6t3F0dw0FkCF/jWY8kttcY4f599GLTSjh2OCuuhdTkJQsEcZzBqbXZGKMK2OqW1oZsjtf/gQA==}
     engines: {node: '>=8'}
@@ -449,6 +455,9 @@ packages:
 
   undici-types@6.20.0:
     resolution: {integrity: sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==}
+
+  up@1.0.2:
+    resolution: {integrity: sha512-PKVGUj7i1qMWSR83H3PZpw1h+21wAr1qxqF/8zgTVHS+sHTsu1zvepQDoDJN0Kv49quNJwWgAKDAK2xPy7jocg==}
 
   update-browserslist-db@1.1.2:
     resolution: {integrity: sha512-PPypAm5qvlD7XMZC3BujecnaOxwhrtoFR+Dqkk5Aa/6DssiH0ibKoketaj9w8LP7Bont1rYeoV5plxD7RTEPRg==}
@@ -744,6 +753,10 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
+  html-to-markdown-wasm@2.5.6:
+    dependencies:
+      up: 1.0.2
+
   import-local@3.2.0:
     dependencies:
       pkg-dir: 4.2.0
@@ -896,6 +909,8 @@ snapshots:
       source-map-support: 0.5.21
 
   undici-types@6.20.0: {}
+
+  up@1.0.2: {}
 
   update-browserslist-db@1.1.2(browserslist@4.24.4):
     dependencies:

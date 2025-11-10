@@ -1,3 +1,4 @@
+import { generateDescription } from "./description_generation";
 import { generateTagsWithOllama } from "./tag_generation";
 
 function createTagElement(tag) {
@@ -63,7 +64,7 @@ async function initializeDetailedSave() {
 		}
 	});
 
-	// Handle manual tag generation
+	// Handle AI tag generation
 	document
 		.getElementById("generateTags")
 		.addEventListener("click", async () => {
@@ -86,6 +87,27 @@ async function initializeDetailedSave() {
 				updateStatus("No tags could be generated");
 			}
 		});
+
+	// Handle AI description generation
+	document.getElementById("summarizeContent").addEventListener("click", async () => {
+		if (!pageInfo) {
+			updateStatus("Error: Page information not available");
+			return;
+		}
+		try {
+			const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+			if (!tabs[0]) return;
+			const response = await chrome.tabs.sendMessage(tabs[0].id, {
+				action: "getBodyContent",
+			});
+			let desc = await generateDescription(pageInfo.title, pageInfo.url, response)
+			document.getElementById("description").value = desc;
+		} catch (error) {
+			updateStatus("Error: Could not load page data");
+			console.error(error);
+		}
+
+	})
 
 	// Handle save
 	document

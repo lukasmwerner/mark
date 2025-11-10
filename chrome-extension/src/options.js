@@ -1,5 +1,6 @@
 import { Ollama } from "ollama/browser";
 import { ollama_schema } from "./schema";
+import { description_prompt, tagging_prompt } from "./default_prompts";
 
 document.addEventListener("DOMContentLoaded", function() {
 	// Load saved settings
@@ -10,6 +11,9 @@ document.addEventListener("DOMContentLoaded", function() {
 			"ollamaModel",
 			"ollamaPrompt",
 			"ollamaTemperature",
+			"ollamaSummaryModel",
+			"ollamaSummaryPrompt",
+			"ollamaSummaryTemperature",
 		],
 		function(result) {
 			console.log(result);
@@ -38,11 +42,27 @@ document.addEventListener("DOMContentLoaded", function() {
 			} else {
 				// Set default prompt if not already set
 				document.getElementById("ollamaPrompt").value =
-					`Generate 3-5 relevant tags for this content. Return only the tags as a JSON array of strings. No additional explanation needed.
+					tagging_prompt;
+			}
 
-Title: {{title}}
-URL: {{url}}
-Description: {{description}}`;
+
+			if (result.ollamaSummaryModel) {
+				document.getElementById("ollamaSummaryModel").value =
+					result.ollamaSummaryModel;
+			}
+
+			if (result.ollamaSummaryTemperature) {
+				document.getElementById("ollamaSummaryTemperature").value =
+					result.ollamaSummaryTemperature;
+			}
+
+			if (result.ollamaSummaryPrompt) {
+				document.getElementById("ollamaSummaryPrompt").value =
+					result.ollamaSummaryPrompt;
+			} else {
+				// Set default prompt if not already set
+				document.getElementById("ollamaSummaryPrompt").value =
+					description_prompt;
 			}
 		},
 	);
@@ -58,14 +78,20 @@ Description: {{description}}`;
 			const ollamaModel = document.getElementById("ollamaModel").value ||
 				"lukasmwerner/mark-tagger:1b";
 			const ollamaPrompt =
-				document.getElementById("ollamaPrompt").value ||
-				`Generate 3-5 relevant tags for this content. Return only the tags as a JSON array of strings. No additional explanation needed.
-
-Title: {{title}}
-URL: {{url}}
-Description: {{description}}`;
+				document.getElementById("ollamaPrompt").value || tagging_prompt;
 			const ollamaTemperature = new Number(
 				document.getElementById("ollamaTemperature").value,
+			) || 0.3;
+
+
+
+			const ollamaSummaryModel = document.getElementById("ollamaSummaryModel").value ||
+				"gemma3:4b";
+			const ollamaSummaryPrompt =
+				document.getElementById("ollamaSummaryPrompt").value ||
+				description_prompt;
+			const ollamaSummaryTemperature = new Number(
+				document.getElementById("ollamaSummaryTemperature").value,
 			) || 0.3;
 
 			chrome.storage.sync.set(
@@ -75,6 +101,9 @@ Description: {{description}}`;
 					ollamaModel: ollamaModel,
 					ollamaPrompt: ollamaPrompt,
 					ollamaTemperature: ollamaTemperature.valueOf(),
+					ollamaSummaryModel: ollamaSummaryModel,
+					ollamaSummaryPrompt: ollamaSummaryPrompt,
+					ollamaSummaryTemperature: ollamaSummaryTemperature.valueOf(),
 				},
 				function() {
 					updateStatus("Settings saved successfully!");
