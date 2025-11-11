@@ -44,11 +44,11 @@ Available Commands:
 
 ## Chrome Extension
 
-![](./images/extension-demo.gif)
+![](./images/chrome-extension-demo.gif)
 
 To load the chrome extension, go into the `chrome-extension` folder and install
-all dependencies, `pnpm i`. Then build the locally `pnpm run build`. You can now
-load the unpacked extension from the newly created `dist` folder.
+all dependencies, `pnpm i`. Then build the extension locally, `pnpm run build`.
+You can now load the unpacked extension from the newly created `dist` folder.
 
 To configure the extension right click the bookmark icon and select 'Options'.
 There you will be able to setup your mark API key (you can generate one using
@@ -59,3 +59,13 @@ There is a [custom fine-tuned tagging model based on llama3.2:1b available on
 Ollama](https://ollama.com/lukasmwerner/mark-tagger). The goal is that as my
 bookmark collection grows I will be able to further fine-tune that model to get
 better tagging capability.
+
+## Raycast Extension
+
+![](./images/raycast-extension-demo.gif)
+
+To load the Raycast extension, go into the `raycast-extension` folder and install
+all dependencies, `pnpm i`. Then build and install locally via `pnpm run dev`.
+
+To load the API key go to the Raycast settings page and under the 'Open Bookmark'
+extension paste the API key in the options pane.
