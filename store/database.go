@@ -293,6 +293,21 @@ func DeleteBookmark(db *DB, bookmark Bookmark) error {
 	return err
 }
 
+func CountBookmarks(db *DB) (count int) {
+	rows, err := db.Query(`SELECT count(*) FROM Bookmarks;`)
+	if err != nil {
+		return count
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		rows.Scan(&count)
+		return count
+	}
+	return count
+
+}
+
 func AddKey(db *DB, key string) error {
 	_, err := db.Exec("INSERT INTO Server_Keys (key) VALUES (?)", key)
 	if err != nil {
