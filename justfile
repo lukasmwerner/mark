@@ -1,13 +1,13 @@
-default: setup install
+default: install
 
 # Variables
 home_dir := env_var('HOME')
 
 # Install the Go application
-install: setup
+install:
     go install -tags "fts5" .
 
-mac-service-install: setup install
+mac-service-install: install
     mkdir -p "{{home_dir}}/Library/LaunchAgents"
     echo "Installing launch agent..."
     sed 's|$HOME|{{home_dir}}|g' template.plist > "{{home_dir}}/Library/LaunchAgents/com.lukaswerner.mark.server.plist"
