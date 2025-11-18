@@ -1,3 +1,5 @@
+import * as api from "./api.js";
+
 // Add listener for tab activation and update events
 chrome.tabs.onActivated.addListener((activeInfo) => {
 	console.log("Tab activated:", activeInfo.tabId);
@@ -32,18 +34,7 @@ async function checkIfBookmarked(tabId) {
 				}
 
 				// Check if the URL is bookmarked
-				const response = await fetch(
-					`http://localhost:1990/api/bookmarks?url=${encodeURIComponent(
-						tab_reponse.url,
-					)
-					}`,
-					{
-						method: "GET",
-						headers: {
-							Authorization: `Bearer ${apiToken}`,
-						},
-					},
-				);
+				const response = await api.getBookmark(apiToken, tab_reponse.url);
 
 				if (response.ok) {
 					// URL is bookmarked

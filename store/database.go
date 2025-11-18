@@ -218,7 +218,11 @@ func GetBookmark(db *DB, query_url string) (Bookmark, error) {
 		if err != nil {
 			return b, err
 		}
-		b.Tags = strings.Split(tags, ", ")
+		if len(tags) > 0 {
+			b.Tags = strings.Split(tags, ", ")
+		} else {
+			b.Tags = []string{}
+		}
 		i++
 	}
 

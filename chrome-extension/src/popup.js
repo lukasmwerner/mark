@@ -1,5 +1,6 @@
 import { generateDescription } from "./description_generation";
 import { generateTagsWithOllama } from "./tag_generation";
+import * as api from "./api.js";
 
 function createTagElement(tag) {
 	const tagElement = document.createElement("span");
@@ -37,9 +38,11 @@ function updateStatus(message) {
 
 
 let pageInfo = null;
+let editing = false;
+let bookmark = null;
 let tags = new Set();
 
-async function initializeDetailedSave() {
+async function preFillPopup() {
 	try {
 		const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
 		if (!tabs[0]) return;
@@ -52,6 +55,28 @@ async function initializeDetailedSave() {
 	} catch (error) {
 		updateStatus("Error: Could not load page data");
 		console.error(error);
+		return;
+	}
+
+
+	const { apiToken } = await chrome.storage.sync.get([
+		"apiToken",
+	]);
+	if (!apiToken) {
+		updateStatus(
+			"Please set your API token in extension options",
+		);
+		return;
+	}
+
+	let resp = await api.getBookmark(apiToken, pageInfo.url);
+	if (resp.ok) {
+		editing = true;
+		bookmark = await resp.json();
+		bookmark.Tags.map(addTag)
+		document.getElementById("title").value = bookmark.Title;
+		document.getElementById("description").value = bookmark.Description;
+		document.getElementById("saveBookmark").innerText = "Update Bookmark"
 	}
 
 	// Handle tag input
@@ -114,45 +139,30 @@ async function initializeDetailedSave() {
 		.getElementById("saveBookmark")
 		.addEventListener("click", async () => {
 			try {
-				const { apiToken } = await chrome.storage.sync.get([
-					"apiToken",
-				]);
-				if (!apiToken) {
-					updateStatus(
-						"Please set your API token in extension options",
-					);
-					return;
-				}
-
 				if (!pageInfo) {
 					updateStatus("Error: Page information not available");
 					return;
 				}
 
-				const bookmark = {
-					Url: pageInfo.url,
-					Title: document.getElementById("title").value,
-					Description: document.getElementById("description").value,
-					Tags: Array.from(tags),
-				};
+				let data = {
+					url: pageInfo.url,
+					title: document.getElementById("title").value,
+					description: document.getElementById("description").value,
+					tags: Array.from(tags),
+				}
+				let response;
+				if (!editing) {
+					response = await api.createBookmark(apiToken, data);
+				} else {
+					data.url = bookmark.Url; // Keep bookmark URL the same
+					response = await api.updateBookmark(apiToken, bookmark.Url, data);
+				}
 
-				const response = await fetch(
-					"http://localhost:1990/api/bookmarks",
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							Authorization: `Bearer ${apiToken}`,
-						},
-						body: JSON.stringify(bookmark),
-					},
-				);
 
 				if (!response.ok) {
 					throw new Error(`HTTP error! status: ${response.status}`);
 				}
-
-				updateStatus("Saved successfully!");
+				updateStatus(editing ? "Bookmark updated!" : "Saved successfully!");
 				setTimeout(() => window.close(), 1000);
 			} catch (error) {
 				updateStatus(`Error: ${error.message}`);
@@ -162,5 +172,5 @@ async function initializeDetailedSave() {
 
 document.addEventListener("DOMContentLoaded", function() {
 	console.log("dom loaded!")
-	initializeDetailedSave()
+	preFillPopup()
 });
