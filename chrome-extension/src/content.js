@@ -42,10 +42,13 @@ function getTextContent(root) {
 		NodeFilter.SHOW_TEXT,
 		null
 	);
-
 	let node;
 	let textContent = ""
 	while (node = walker.nextNode()) {
+		try {
+			let tagName = node.parentElement.tagName;
+			if (tagName == "SCRIPT" || tagName == "STYLE") { continue; }
+		} catch (error) { }
 		textContent += node.nodeValue + " ";
 	}
 	return textContent;
