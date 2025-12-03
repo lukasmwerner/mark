@@ -18,7 +18,6 @@ async function generateDescription(title, url, content) {
 			"ollamaSummaryPrompt",
 			"ollamaSummaryTemperature",
 		]);
-		console.log({ ollamaEndpoint, ollamaModel, ollamaPrompt, temperature })
 
 		const endpoint = ollamaEndpoint || "http://localhost:11434";
 		const model = ollamaModel || "gemma3:4b";
