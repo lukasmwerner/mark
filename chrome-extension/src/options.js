@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", function() {
 	chrome.storage.sync.get(
 		[
 			"apiToken",
+			"iconColor",
 			"ollamaEndpoint",
 			"ollamaModel",
 			"ollamaPrompt",
@@ -19,6 +20,10 @@ document.addEventListener("DOMContentLoaded", function() {
 			console.log(result);
 			if (result.apiToken) {
 				document.getElementById("tokenInput").value = result.apiToken;
+			}
+
+			if (result.iconColor) {
+				document.getElementById("iconColor").value = result.iconColor;
 			}
 
 			if (result.ollamaEndpoint) {
@@ -72,6 +77,7 @@ document.addEventListener("DOMContentLoaded", function() {
 		.getElementById("saveSettings")
 		.addEventListener("click", function() {
 			const token = document.getElementById("tokenInput").value;
+			const iconColor = document.getElementById("iconColor").value;
 			const ollamaEndpoint =
 				document.getElementById("ollamaEndpoint").value ||
 				"http://localhost:11434";
@@ -97,6 +103,7 @@ document.addEventListener("DOMContentLoaded", function() {
 			chrome.storage.sync.set(
 				{
 					apiToken: token,
+					iconColor: iconColor,
 					ollamaEndpoint: ollamaEndpoint,
 					ollamaModel: ollamaModel,
 					ollamaPrompt: ollamaPrompt,
@@ -109,6 +116,13 @@ document.addEventListener("DOMContentLoaded", function() {
 					updateStatus("Settings saved successfully!");
 				},
 			);
+		});
+
+	// Reset Icon Color
+	document
+		.getElementById("resetIconColor")
+		.addEventListener("click", function() {
+			document.getElementById("iconColor").value = "#000000";
 		});
 
 	// Test Ollama connection

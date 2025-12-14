@@ -69,3 +69,8 @@ all dependencies, `pnpm i`. Then build and install locally via `pnpm run dev`.
 
 To load the API key go to the Raycast settings page and under the 'Open Bookmark'
 extension paste the API key in the options pane.
+
+## Related Blogposts
+- [Syncing SQLite in a Local-First Way](https://lukaswerner.com/post/2024-08-13@Sqlite-Local-First)
+- [Dealing With Small Model Context Windows](https://lukaswerner.com/post/2025-11-12@mark-context-windows)
+
