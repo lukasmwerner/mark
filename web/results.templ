@@ -1,0 +1,73 @@
+package web
+
+import (
+	"github.com/lukasmwerner/mark/store"
+	"net/url"
+)
+
+func DomainOnly(u string) string {
+	ur, err := url.Parse(u)
+	if err != nil {
+		return ""
+	}
+	return ur.Hostname()
+
+}
+
+templ ResultsPage(markHostname string, query string, orderBy string, results []store.Bookmark) {
+	@Page() {
+		@Head(query + " - mark: " + markHostname)
+		@Body() {
+			@StatusBar("nav") {
+				@StatusBarGroup("width: 100%;") {
+					<a href="/"><pre class="statusbar-item" style="background:#A7C080;">mark</pre></a>
+					<input
+						id="q"
+						name="q"
+						type="search"
+						placeholder="Search..."
+						value={ query }
+					/>
+				}
+				@StatusBarGroup("") {
+					<div class="statusbar-item" style="background:#D3C6AA;">
+						<pre style="margin:0;" id="order-by">Order By: { orderBy }</pre>
+						<!--<div class="dropdown orderby">
+							<button id="recency">Recency</button>
+							<button id="fts">FTS Rank</button>
+						</div>-->
+					</div>
+					@StatusBarItem(Humanize(len(results))+" Results", "#A7C080")
+					@StatusBarItem(markHostname, "#4A545C")
+				}
+			}
+			if len(results) == 0 {
+				<div class="center">
+					<p>No results, yet.</p>
+				</div>
+			}
+			<div class="results">
+				for _, result := range results {
+					<div class="result">
+						<a href={ result.Url } class="title">{ result.Title }</a>
+						<br/>
+						<a href={ result.Url } class="domain">{ DomainOnly(result.Url) }</a>
+						<p>{ result.Description }</p>
+					</div>
+				}
+			</div>
+			<script>
+			document.querySelector("input[type=search]").addEventListener("keyup", (e)=>{
+				if (e.key == "Enter") {
+					e.preventDefault();
+					let query = e.target.value;
+					let url = new URL(window.location.href);
+					url.pathname = "/search"
+					url.searchParams.set("q", query);
+					window.location.replace(url.href);
+				}
+			});
+			</script>
+		}
+	}
+}

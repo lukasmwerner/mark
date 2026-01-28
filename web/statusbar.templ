@@ -1,0 +1,17 @@
+package web
+
+templ StatusBar(class string) {
+	<div class={ "statusbar " + class }>
+		{ children... }
+	</div>
+}
+
+templ StatusBarGroup(style string) {
+	<div class="statusbar-group" style={ style }>
+		{ children... }
+	</div>
+}
+
+templ StatusBarItem(value string, backgroundColor string) {
+	<pre class="statusbar-item" style={ "background:" + backgroundColor + ";" }>{ value }</pre>
+}

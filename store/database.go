@@ -245,7 +245,7 @@ func GetBookmark(db *DB, query_url string) (Bookmark, error) {
 func SearchBookmarks(db *DB, query string) ([]Bookmark, error) {
 	bookmarks := []Bookmark{}
 	query = strings.Join(strings.Fields(query), "* ") + "*"
-	rows, err := db.Query(`SELECT url, title, description, tags FROM Bookmarks_fts WHERE Bookmarks_fts MATCH ?;`, query)
+	rows, err := db.Query(`SELECT url, title, description, tags FROM Bookmarks_fts WHERE Bookmarks_fts MATCH ? ORDER BY bm25(Bookmarks_fts) DESC;`, query)
 	if err != nil {
 		return bookmarks, err
 	}

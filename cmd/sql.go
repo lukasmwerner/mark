@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -51,8 +52,14 @@ var sqlCmd = &cobra.Command{
 		defer db.Close()
 
 		if len(args) > 0 {
+			fmt.Println(args)
 			query := strings.Join(args, " ")
-			executeQuery(db, query)
+			fmt.Println(query)
+			rows, err := executeQuery(db, query)
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+			renderResults(rows)
 			return
 		}
 		reader := bufio.NewReader(os.Stdin)

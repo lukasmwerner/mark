@@ -162,3 +162,5 @@ dist
 # Serverless Webpack directories
 .webpack/
 
+
+*_templ.go

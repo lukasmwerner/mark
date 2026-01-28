@@ -1,0 +1,60 @@
+package web
+
+import "strconv"
+import "math/rand"
+
+func Humanize(num int) string {
+	if num >= 1000 {
+		n := float64(num) / 1000
+		return strconv.FormatFloat(n, 'g', -1, 32) + "k"
+	}
+	return strconv.Itoa(num)
+}
+
+func Tagline() string {
+	taglines := []string{
+		"a remarkable internet",
+		"a web for humans",
+		"an indie web champion",
+		"a vibrant internet hypothesis",
+	}
+	return taglines[rand.Intn(len(taglines))]
+}
+
+templ LandingPage(markHostname string, numBookmarks int) {
+	@Page() {
+		@Head("mark: " + markHostname)
+		@Body() {
+			<div class="center searchbox">
+				<h1>mark</h1>
+				<h3>{ Tagline() }</h3>
+				<input
+					id="q"
+					name="q"
+					type="search"
+					placeholder="Search..."
+				/>
+			</div>
+			@StatusBar("bottom") {
+				@StatusBarGroup("") {
+					@StatusBarItem(markHostname, "#A7C080")
+				}
+				@StatusBarGroup("") {
+					@StatusBarItem(Humanize(numBookmarks)+" Bookmarks", "#D3C6AA")
+				}
+			}
+			<script>
+			document.querySelector("input[type=search]").addEventListener("keyup", (e)=>{
+				if (e.key == "Enter") {
+					e.preventDefault();
+					let query = e.target.value;
+					let url = new URL(window.location.href);
+					url.pathname = "/search"
+					url.searchParams.set("q", query);
+					window.location.replace(url.href);
+				}
+			});
+			</script>
+		}
+	}
+}
