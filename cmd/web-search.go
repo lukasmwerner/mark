@@ -114,6 +114,7 @@ var searchCmd = &cobra.Command{
 			log.Println(err.Error())
 			return
 		}
+		go db.FSWatcher()
 
 		http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(static.FS))))
 		http.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {

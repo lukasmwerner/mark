@@ -10,7 +10,9 @@ import (
 	"path"
 	"runtime"
 	"strings"
+	"sync"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/mattn/go-sqlite3"
 )
 
@@ -156,6 +158,14 @@ type DB struct {
 	StoreLoc        string
 	ChangesStoreLoc string
 	Hostname        string
+
+	syncLock sync.Mutex
+}
+
+func (db *DB) SyncChanges() {
+	db.syncLock.Lock()
+	syncronizeLocalChangesToDisk(db, path.Join(db.ChangesStoreLoc, db.Hostname))
+	db.syncLock.Unlock()
 }
 
 func (db *DB) Close() error {
@@ -170,6 +180,29 @@ func (db *DB) Close() error {
 	}
 
 	return db.DB.Close()
+}
+
+func (db *DB) FSWatcher() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer watcher.Close()
+
+	watcher.Add(db.ChangesStoreLoc)
+
+	for {
+		select {
+		case err := <-watcher.Errors:
+			fmt.Println("had error watching", err.Error())
+		case event := <-watcher.Events:
+			if event.Has(fsnotify.Write) || event.Has(fsnotify.Rename) {
+				syncronizeFromHostsToDB(db, db.Hostname, db.ChangesStoreLoc)
+				log.Println("sync-event!")
+			}
+		}
+	}
 }
 
 func EnsureTables(db *DB, tables ...requirement) error {

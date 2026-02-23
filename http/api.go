@@ -49,6 +49,7 @@ func CreateBookmarkHandler(db *store.DB) http.Handler {
 		}
 		w.WriteHeader(http.StatusCreated)
 		w.Write(fmt.Appendf([]byte{}, `{"id": %d}`, id))
+		go db.SyncChanges()
 	}))
 }
 
@@ -70,6 +71,7 @@ func UpdateBookmarkHandler(db *store.DB) http.Handler {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
+		go db.SyncChanges()
 	}))
 }
 
