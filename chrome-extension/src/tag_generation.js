@@ -1,7 +1,7 @@
 import { Ollama } from "ollama/browser";
 import { ollama_schema } from "./schema";
 
-async function generateTagsWithOllama(url, title, description) {
+async function generateTagsWithOllama(url, title, description, currentTags) {
 	try {
 		// Show loading indicator
 		document.getElementById("tagsLoading").style.display = "flex";
@@ -35,7 +35,8 @@ async function generateTagsWithOllama(url, title, description) {
 		const prompt = promptTemplate
 			.replace(/{{title}}/g, title)
 			.replace(/{{url}}/g, url)
-			.replace(/{{description}}/g, description);
+			.replace(/{{description}}/g, description)
+			.replace(/{{tags}}/g, JSON.stringify(currentTags));
 
 		// Initialize Ollama client
 		const ollamaClient = new Ollama({

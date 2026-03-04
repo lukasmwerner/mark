@@ -99,9 +99,10 @@ async function preFillPopup() {
 			}
 
 			const generatedTags = await generateTagsWithOllama(
-				pageInfo.title,
 				pageInfo.url,
+				pageInfo.title,
 				document.getElementById("description").value,
+				Array.from(tags),
 			);
 
 			if (generatedTags && generatedTags.length > 0) {

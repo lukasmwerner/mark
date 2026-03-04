@@ -92,7 +92,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
 			const ollamaSummaryModel = document.getElementById("ollamaSummaryModel").value ||
-				"gemma3:4b";
+				"qwen3.5:2b";
 			const ollamaSummaryPrompt =
 				document.getElementById("ollamaSummaryPrompt").value ||
 				description_prompt;

@@ -20,7 +20,7 @@ async function generateDescription(title, url, content) {
 		]);
 
 		const endpoint = ollamaEndpoint || "http://localhost:11434";
-		const model = ollamaModel || "gemma3:4b";
+		const model = ollamaModel || "qwen3.5:2b";
 
 		// Use custom prompt if available, otherwise use default
 		let promptTemplate = ollamaPrompt ||
@@ -45,6 +45,7 @@ Document: {{content}}`;
 				temperature: temperature || 0.3,
 			},
 			format: description_schema,
+			think: false,
 		});
 
 		// Hide loading indicator
