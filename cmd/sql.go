@@ -43,7 +43,9 @@ var sqlCmd = &cobra.Command{
 	Short: "Lets you run sql queries on your database",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := store.Open()
+		db, err := store.Open(store.Options{
+			Flags: []store.Flag{store.Embedding},
+		})
 		if err != nil {
 			fmt.Println(err.Error())
 			return
@@ -90,10 +92,41 @@ var sqlCmd = &cobra.Command{
 				query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
 			} else if input == ".schema" {
 				query = "SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name;"
-			} else if search, ok := strings.CutPrefix(input, ".search "); ok {
-				rows, _ := db.Query("SELECT * FROM Bookmarks_fts WHERE Bookmarks_fts MATCH ?;", search)
+			} else if search, ok := strings.CutPrefix(input, ".web-search"); ok {
+				results, err := WebSearchBookmarks(db, search, ftsRank)
+				if err != nil {
+					fmt.Println("err: " + err.Error())
+					continue
+				}
+				renderBookmarks(results)
+				query = ""
+				continue
+
+			} else if search, ok := strings.CutPrefix(input, ".semantic "); ok {
+				fmt.Printf("semantic: '%s'\n", search)
+				rows, err := db.Query(`SELECT b.url, b.title, b.description, b.tags, distance
+				FROM bookmark_embeddings e
+				JOIN Bookmarks b ON e.document_id = b.id
+				WHERE e.embedding MATCH embed('embeddinggemma', concat_ws(' ', 'task: search result | query: ', ?)) and k = 100 and distance <= 1.2
+				ORDER BY distance;`, search)
+				if err != nil {
+					fmt.Println("err: " + err.Error())
+					continue
+				}
 				renderResults(rows)
 				query = ""
+				rows.Close()
+				continue
+			} else if search, ok := strings.CutPrefix(input, ".search "); ok {
+				fmt.Printf("search: '%s'\n", search)
+				rows, err := db.Query("SELECT * FROM Bookmarks_fts WHERE Bookmarks_fts MATCH ?;", search)
+				if err != nil {
+					fmt.Println("err: " + err.Error())
+					continue
+				}
+				renderResults(rows)
+				query = ""
+				rows.Close()
 				continue
 			} else {
 				// Append to current query if it doesn't end with semicolon
@@ -109,6 +142,7 @@ var sqlCmd = &cobra.Command{
 				rows, _ := executeQuery(db, query)
 				renderResults(rows)
 				query = ""
+				rows.Close()
 			}
 		}
 	},
@@ -126,6 +160,26 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// sqlCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func renderBookmarks(bookmarks []store.Bookmark) {
+	if bookmarks == nil {
+		return
+	}
+
+	width, _, err := term.GetSize(0)
+	if err != nil {
+		fmt.Println(errorStyle.Render("Error getting terminal size: " + err.Error()))
+		return
+	}
+
+	t := table.New().Headers("url", "title", "description", "tags").Width(width)
+	for _, b := range bookmarks {
+		t.Row(b.Url, b.Title, b.Description, strings.Join(b.Tags, ", "))
+	}
+	fmt.Println(t.Render())
+
+	fmt.Printf("Query executed successfully. %d row(s) returned.\n", len(bookmarks))
 }
 
 func renderResults(rows *sql.Rows) {
@@ -205,7 +259,8 @@ func printHelp() {
 	fmt.Println("  .exit, .quit - Exit the REPL")
 	fmt.Println("  .tables      - List all tables")
 	fmt.Println("  .schema      - Show schema for all tables")
-	fmt.Println("  .search 		- Use FTS search for tables")
+	fmt.Println("  .search      - Use FTS search to find bookmarks")
+	fmt.Println("  .semantic    - Use vector embeddings to find bookmarks")
 	fmt.Println("")
 	fmt.Println("Notes:")
 	fmt.Println("- SQL queries can span multiple lines until a semicolon is entered")

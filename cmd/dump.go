@@ -17,7 +17,9 @@ var dumpCmd = &cobra.Command{
 	Short: "dumps the database to a sqlite3 file",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := store.Open()
+		db, err := store.Open(store.Options{
+			Flags: []store.Flag{store.Embedding},
+		})
 		if err != nil {
 			fmt.Println(err.Error())
 			return

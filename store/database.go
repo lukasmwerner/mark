@@ -12,15 +12,25 @@ import (
 	"strings"
 	"sync"
 
+	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
 	"github.com/fsnotify/fsnotify"
 	"github.com/mattn/go-sqlite3"
 )
 
 const CRSQLITE_VERSION = "v0.16.3"
 
+type Flag string
+
+const Embedding = Flag("embedding")
+
+type Options struct {
+	Flags []Flag
+}
+
 type requirement struct {
 	name       string
 	definition string
+	flags      []Flag
 }
 
 var Tables = []requirement{
@@ -78,9 +88,60 @@ END;`,
 		name:       "Preformance_Tune_WAL",
 		definition: `PRAGMA journal_mode=WAL;`,
 	},
+	{
+		name: "Registered_Jobs_Table",
+		definition: `CREATE TABLE IF NOT EXISTS jobs (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	name TEXT NOT NULL,
+	matcher TEXT NOT NULL,
+	action TEXT NOT NULL
+);`,
+	},
+	{
+		name: "Pending_jobs_Table",
+		definition: `CREATE TABLE IF NOT EXISTS pending_jobs (
+	bookmark_id INTEGER,
+	action TEXT NOT NULL
+);`,
+	},
+	{
+		name: "Bookmark_Embedding",
+		definition: `CREATE VIRTUAL TABLE IF NOT EXISTS bookmark_embeddings using vec0(
+	document_id int,
+	embedding float[768]
+		);`,
+		flags: []Flag{Embedding},
+	},
+	{
+		name: "Bookmark_embeddings_Sync_1",
+		definition: `CREATE TRIGGER IF NOT EXISTS Bookmarks_embeddings_insert AFTER INSERT ON Bookmarks
+BEGIN
+    INSERT INTO bookmark_embeddings (document_id, embedding)
+	VALUES (new.id, embed('embeddinggemma', concat_ws(' ', 'title: ', new.title, ' | text: ', new.description, new.tags, justPath(new.url))));
+END;`,
+		flags: []Flag{Embedding},
+	},
+	{
+		name: "Bookmark_embeddings_Sync_2",
+		definition: `CREATE TRIGGER IF NOT EXISTS Bookmarks_embeddings_update AFTER UPDATE ON Bookmarks
+BEGIN
+    DELETE FROM bookmark_embeddings WHERE document_id = old.id;
+    INSERT INTO bookmark_embeddings (document_id, embedding)
+	VALUES (new.id, embed('embeddinggemma', concat_ws(' ', 'title: ', new.title, ' | text: ', new.description, new.tags, justPath(new.url))));
+END;`,
+		flags: []Flag{Embedding},
+	},
+	{
+		name: "Bookmark_embeddings_Sync_3",
+		definition: `CREATE TRIGGER IF NOT EXISTS Bookmarks_embeddings_delete AFTER DELETE ON Bookmarks
+BEGIN
+    DELETE FROM Bookmarks_fts WHERE rowid = old.id;
+END;`,
+		flags: []Flag{Embedding},
+	},
 }
 
-func Open() (*DB, error) {
+func Open(options Options) (*DB, error) {
 	markStoreLocation := os.Getenv("MARK_STORE_LOCATION")
 	homedir, err := os.UserHomeDir()
 	if err != nil {
@@ -115,7 +176,19 @@ func Open() (*DB, error) {
 	}
 	sql.Register("cr-sqlite", &sqlite3.SQLiteDriver{
 		Extensions: []string{path.Join(markStoreLocation, "crsqlite")},
+		ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+			err := conn.RegisterFunc("embed", ollama_embedding, true)
+			if err != nil {
+				return err
+			}
+			err = conn.RegisterFunc("justPath", justPath, true)
+			if err != nil {
+				return err
+			}
+			return nil
+		},
 	})
+	sqlite_vec.Auto()
 
 	sqlDB, err := sql.Open("cr-sqlite", path.Join(markStoreLocation, "data.db"))
 	if err != nil {
@@ -207,6 +280,9 @@ func (db *DB) FSWatcher() {
 
 func EnsureTables(db *DB, tables ...requirement) error {
 	for _, table := range tables {
+		if table.flags != nil {
+			// TODO: there are flags... need to check if we have them enabled
+		}
 		_, err := db.Exec(table.definition)
 		if err != nil {
 			log.Print(table.name, err.Error())
@@ -237,7 +313,10 @@ func GetBookmark(db *DB, query_url string) (Bookmark, error) {
 		return b, err
 	}
 
-	rows, err := db.Query("SELECT url, title, description, tags FROM Bookmarks WHERE url like ? AND url like ?", fmt.Sprintf("%%%v%%", u.Host), fmt.Sprintf("%%%v%%", u.Path))
+	rows, err := db.Query(`SELECT url, title, description, tags 
+	FROM Bookmarks 
+	WHERE url like ? 
+	AND url like ?`, fmt.Sprintf("%%%v%%", u.Host), fmt.Sprintf("%%%v%%", u.Path))
 	if err != nil {
 		return b, err
 	}
@@ -275,10 +354,39 @@ func GetBookmark(db *DB, query_url string) (Bookmark, error) {
 	return b, nil
 }
 
+func SemanticSearchBookmarks(db *DB, query string) ([]Bookmark, error) {
+	bookmarks := []Bookmark{}
+	rows, err := db.Query(`SELECT b.url, b.title, b.description, b.tags
+				FROM bookmark_embeddings e
+				JOIN Bookmarks b ON e.document_id = b.id
+				WHERE e.embedding MATCH embed('embeddinggemma', concat_ws(' ', 'task: search result | query: ', ?)) and k = 100 and distance <= 1.2
+				ORDER BY distance;`, query)
+	if err != nil {
+		return bookmarks, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var b Bookmark
+		var tags string
+		err := rows.Scan(&b.Url, &b.Title, &b.Description, &tags)
+		if err != nil {
+			return bookmarks, err
+		}
+		b.Tags = strings.Split(tags, ", ")
+		bookmarks = append(bookmarks, b)
+	}
+
+	return bookmarks, nil
+}
+
 func SearchBookmarks(db *DB, query string) ([]Bookmark, error) {
 	bookmarks := []Bookmark{}
 	query = strings.Join(strings.Fields(query), "* ") + "*"
-	rows, err := db.Query(`SELECT url, title, description, tags FROM Bookmarks_fts WHERE Bookmarks_fts MATCH ? ORDER BY bm25(Bookmarks_fts) DESC;`, query)
+	rows, err := db.Query(`SELECT url, title, description, tags 
+		FROM Bookmarks_fts 
+		WHERE Bookmarks_fts MATCH ? 
+		ORDER BY bm25(Bookmarks_fts) DESC;`, query)
 	if err != nil {
 		return bookmarks, err
 	}

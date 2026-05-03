@@ -102,14 +102,33 @@ func WebSearchBookmarks(db *store.DB, query string, ranker RankingMethod) ([]sto
 		bookmarks = append(bookmarks, b)
 	}
 
+	if len(bookmarks) == 0 {
+		return store.SemanticSearchBookmarks(db, query)
+	}
+
 	return bookmarks, nil
 }
+
+//func mergeResults(results ...[]store.Bookmark) []store.Bookmark {
+//	outputResults := make([]store.Bookmark, len(results[0]))
+//	copy(outputResults, results[0])
+//
+//	for i := range results[1:] {
+//		for j, bm := range results[i] {
+//
+//		}
+//	}
+//
+//	return outputResults
+//}
 
 var searchCmd = &cobra.Command{
 	Use:   "search",
 	Short: `[EXPERIMENTAL] google search like interface`,
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := store.Open()
+		db, err := store.Open(store.Options{
+			Flags: []store.Flag{store.Embedding},
+		})
 		if err != nil {
 			log.Println(err.Error())
 			return

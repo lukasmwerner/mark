@@ -231,7 +231,9 @@ file sync service. This is sort-of explained the following blog post:
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 
-		db, err := store.Open()
+		db, err := store.Open(store.Options{
+			Flags: []store.Flag{store.Embedding},
+		})
 		if err != nil {
 			fmt.Println("unable to open database", err.Error())
 			return

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"runtime"
@@ -89,4 +90,12 @@ func downloadCrSqlite(installPath string, filename string) error {
 	os.Remove(path.Join(installPath, filename+".zip"))
 
 	return err
+}
+
+func justPath(s string) string {
+	u, err := url.Parse(s)
+	if err != nil {
+		return s
+	}
+	return u.Path
 }

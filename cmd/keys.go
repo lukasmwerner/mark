@@ -15,7 +15,9 @@ var keysCmd = &cobra.Command{
 	Use:   "keys",
 	Short: "List all allowed api keys for the local http server",
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := store.Open()
+		db, err := store.Open(store.Options{
+			Flags: []store.Flag{store.Embedding},
+		})
 		if err != nil {
 			fmt.Println(err.Error())
 			return

@@ -18,7 +18,9 @@ var editCmd = &cobra.Command{
 	Short: "Edit a bookmark",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := store.Open()
+		db, err := store.Open(store.Options{
+			Flags: []store.Flag{store.Embedding},
+		})
 		if err != nil {
 			fmt.Println(err.Error())
 			return

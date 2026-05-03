@@ -46,7 +46,9 @@ mark add [--tags list,of,seperated,tags] url`,
 		fmt.Println("link", link)
 		fmt.Println("tags", tags)
 
-		db, err := store.Open()
+		db, err := store.Open(store.Options{
+			Flags: []store.Flag{store.Embedding},
+		})
 		if err != nil {
 			log.Fatalln("error occured in opening db: ", err.Error())
 			return

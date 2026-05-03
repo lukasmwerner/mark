@@ -19,7 +19,9 @@ var serverCmd = &cobra.Command{
 	Short: "Local HTTP server for managing bookmarks",
 	Long:  `Designed for hosting for applications where there is no strong storage api that can easily be synchronized with Dropbox, Google Drive, Syncthing or other cloud storage sync services.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := store.Open()
+		db, err := store.Open(store.Options{
+			Flags: []store.Flag{store.Embedding},
+		})
 		if err != nil {
 			fmt.Println("error occured in opening db: ", err.Error())
 			return

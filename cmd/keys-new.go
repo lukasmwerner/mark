@@ -17,7 +17,9 @@ var newKeyCmd = &cobra.Command{
 	Short: "Generate a new key",
 	Long:  `Makes a new key for use in the mark http server (web app, web extension and raycast-extension)`,
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := store.Open()
+		db, err := store.Open(store.Options{
+			Flags: []store.Flag{store.Embedding},
+		})
 		if err != nil {
 			fmt.Println(err)
 			return
