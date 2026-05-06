@@ -137,6 +137,18 @@ a:visited {
 			margin-bottom: 0.5em;
 			display: inline-flex;
 		}
+		.algorithm {
+			color: #D3C6AA;
+			background: #3D484D;
+			border-radius: 50px;
+			font-size: 0.9rem;
+			padding: 0.5em;
+			padding-left: 1em;
+			padding-right: 1em;
+			margin-top: 0.5em;
+			margin-bottom: 0.5em;
+			display: inline-flex;
+		}
 		p {
 			color: #C4C0B9;
 			margin-top: 0.5em

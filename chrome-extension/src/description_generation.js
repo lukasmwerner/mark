@@ -59,7 +59,6 @@ Document: {{content}}`;
 		document.getElementById("descLoading").style.display = "none";
 
 		console.error("Error generating description with Ollama:", error);
-		updateStatus(`Error generating description: ${error.message}`);
 		return [];
 	}
 }

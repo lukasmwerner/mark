@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/charmbracelet/x/term"
+	"github.com/lukasmwerner/mark/search"
 	"github.com/lukasmwerner/mark/store"
 	"github.com/spf13/cobra"
 )
@@ -92,30 +93,25 @@ var sqlCmd = &cobra.Command{
 				query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
 			} else if input == ".schema" {
 				query = "SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name;"
-			} else if search, ok := strings.CutPrefix(input, ".web-search"); ok {
-				results, err := WebSearchBookmarks(db, search, ftsRank)
+			} else if s, ok := strings.CutPrefix(input, ".web-search"); ok {
+				results, err := search.Search(db, s)
+				if err != nil {
+					fmt.Println("err: " + err.Error())
+					continue
+				}
+				renderSearchResults(results)
+				query = ""
+				continue
+
+			} else if s, ok := strings.CutPrefix(input, ".semantic "); ok {
+				fmt.Printf("semantic: '%s'\n", s)
+				results, err := search.Semantic(db, s)
 				if err != nil {
 					fmt.Println("err: " + err.Error())
 					continue
 				}
 				renderBookmarks(results)
 				query = ""
-				continue
-
-			} else if search, ok := strings.CutPrefix(input, ".semantic "); ok {
-				fmt.Printf("semantic: '%s'\n", search)
-				rows, err := db.Query(`SELECT b.url, b.title, b.description, b.tags, distance
-				FROM bookmark_embeddings e
-				JOIN Bookmarks b ON e.document_id = b.id
-				WHERE e.embedding MATCH embed('embeddinggemma', concat_ws(' ', 'task: search result | query: ', ?)) and k = 100 and distance <= 1.21
-				ORDER BY distance;`, search)
-				if err != nil {
-					fmt.Println("err: " + err.Error())
-					continue
-				}
-				renderResults(rows)
-				query = ""
-				rows.Close()
 				continue
 			} else if search, ok := strings.CutPrefix(input, ".search "); ok {
 				fmt.Printf("search: '%s'\n", search)
@@ -160,6 +156,15 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// sqlCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func renderSearchResults(results []search.Result) {
+	bookmarks := make([]store.Bookmark, len(results))
+	for i, r := range results {
+		bookmarks[i] = r.Bookmark
+	}
+	renderBookmarks(bookmarks)
+
 }
 
 func renderBookmarks(bookmarks []store.Bookmark) {

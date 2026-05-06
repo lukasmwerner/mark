@@ -304,6 +304,32 @@ func InsertBookmark(db *DB, bookmark Bookmark) (BookmarkId, error) {
 	return BookmarkId(id), err
 }
 
+func SearchBookmarks(db *DB, query string) ([]Bookmark, error) {
+	bookmarks := []Bookmark{}
+
+	rows, err := db.Query(`SELECT url, title, description, tags
+		FROM Bookmarks_fts
+		WHERE Bookmarks_fts MATCH ?
+		ORDER BY bm25(Bookmarks_fts) DESC;`, query)
+	if err != nil {
+		return bookmarks, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var b Bookmark
+		var tags string
+		err := rows.Scan(&b.Url, &b.Title, &b.Description, &tags)
+		if err != nil {
+			return bookmarks, err
+		}
+		b.Tags = strings.Split(tags, ", ")
+		bookmarks = append(bookmarks, b)
+	}
+
+	return bookmarks, nil
+}
+
 func GetBookmark(db *DB, query_url string) (Bookmark, error) {
 	var b Bookmark
 	var tags string
@@ -354,39 +380,12 @@ func GetBookmark(db *DB, query_url string) (Bookmark, error) {
 	return b, nil
 }
 
-func SemanticSearchBookmarks(db *DB, query string) ([]Bookmark, error) {
+func GetBookmarks(db *DB) ([]Bookmark, error) {
+
 	bookmarks := []Bookmark{}
-	rows, err := db.Query(`SELECT b.url, b.title, b.description, b.tags
-				FROM bookmark_embeddings e
-				JOIN Bookmarks b ON e.document_id = b.id
-				WHERE e.embedding MATCH embed('embeddinggemma', concat_ws(' ', 'task: search result | query: ', ?)) and k = 100 and distance <= 1.21
-				ORDER BY distance;`, query)
-	if err != nil {
-		return bookmarks, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var b Bookmark
-		var tags string
-		err := rows.Scan(&b.Url, &b.Title, &b.Description, &tags)
-		if err != nil {
-			return bookmarks, err
-		}
-		b.Tags = strings.Split(tags, ", ")
-		bookmarks = append(bookmarks, b)
-	}
-
-	return bookmarks, nil
-}
-
-func SearchBookmarks(db *DB, query string) ([]Bookmark, error) {
-	bookmarks := []Bookmark{}
-	query = strings.Join(strings.Fields(query), "* ") + "*"
-	rows, err := db.Query(`SELECT url, title, description, tags 
-		FROM Bookmarks_fts 
-		WHERE Bookmarks_fts MATCH ? 
-		ORDER BY bm25(Bookmarks_fts) DESC;`, query)
+	rows, err := db.Query(`SELECT url, title, description, tags
+		FROM Bookmarks
+		ORDER BY rowid DESC;`)
 	if err != nil {
 		return bookmarks, err
 	}

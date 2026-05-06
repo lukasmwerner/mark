@@ -76,11 +76,20 @@ func (m rootAppModel) Init() tea.Cmd { return nil }
 func (m rootAppModel) updateTable() rootAppModel {
 
 	bmCount := m.rowsCount
-
-	bookmarks, err := store.SearchBookmarks(m.db, m.input.Value())
-	if err != nil {
-		log.Panicln(err)
-		return m
+	var bookmarks []store.Bookmark
+	var err error
+	if m.input.Value() != "" {
+		bookmarks, err = store.SearchBookmarks(m.db, m.input.Value())
+		if err != nil {
+			log.Panicln(err)
+			return m
+		}
+	} else {
+		bookmarks, err = store.GetBookmarks(m.db)
+		if err != nil {
+			log.Panicln(err)
+			return m
+		}
 	}
 
 	if len(bookmarks) == bmCount {
@@ -269,6 +278,7 @@ file sync service. This is sort-of explained the following blog post:
 		input.Placeholder = "Search / Filter"
 
 		m := rootAppModel{db: db, table: t, input: input, currentIndex: 1, rowsCount: 0, mode: NORMAL}
+		m = m.updateTable()
 
 		prog := tea.NewProgram(m, tea.WithAltScreen())
 

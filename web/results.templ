@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/lukasmwerner/mark/store"
+	"github.com/lukasmwerner/mark/search"
 	"net/url"
 )
 
@@ -14,7 +14,7 @@ func DomainOnly(u string) string {
 
 }
 
-templ ResultsPage(markHostname string, query string, orderBy string, results []store.Bookmark) {
+templ ResultsPage(markHostname string, query string, orderBy string, results []search.Result) {
 	@Page() {
 		@Head(query + " - mark: " + markHostname)
 		@Body() {
@@ -52,6 +52,7 @@ templ ResultsPage(markHostname string, query string, orderBy string, results []s
 						<a href={ result.Url } class="title">{ result.Title }</a>
 						<br/>
 						<a href={ result.Url } class="domain">{ DomainOnly(result.Url) }</a>
+						<span class="algorithm">{ result.Source }</span>
 						<p>{ result.Description }</p>
 					</div>
 				}
