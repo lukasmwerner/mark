@@ -107,7 +107,7 @@ var sqlCmd = &cobra.Command{
 				rows, err := db.Query(`SELECT b.url, b.title, b.description, b.tags, distance
 				FROM bookmark_embeddings e
 				JOIN Bookmarks b ON e.document_id = b.id
-				WHERE e.embedding MATCH embed('embeddinggemma', concat_ws(' ', 'task: search result | query: ', ?)) and k = 100 and distance <= 1.2
+				WHERE e.embedding MATCH embed('embeddinggemma', concat_ws(' ', 'task: search result | query: ', ?)) and k = 100 and distance <= 1.21
 				ORDER BY distance;`, search)
 				if err != nil {
 					fmt.Println("err: " + err.Error())

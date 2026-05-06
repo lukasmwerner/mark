@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 
 	_ "embed"
@@ -102,25 +103,70 @@ func WebSearchBookmarks(db *store.DB, query string, ranker RankingMethod) ([]sto
 		bookmarks = append(bookmarks, b)
 	}
 
-	if len(bookmarks) == 0 {
-		return store.SemanticSearchBookmarks(db, query)
-	}
-
 	return bookmarks, nil
 }
 
-//func mergeResults(results ...[]store.Bookmark) []store.Bookmark {
-//	outputResults := make([]store.Bookmark, len(results[0]))
-//	copy(outputResults, results[0])
-//
-//	for i := range results[1:] {
-//		for j, bm := range results[i] {
-//
-//		}
-//	}
-//
-//	return outputResults
-//}
+func mergeResults(results ...[]store.Bookmark) []store.Bookmark {
+	type rankedBookmark struct {
+		bookmark store.Bookmark
+		score    float64
+		bestRank int
+		firstSet int
+	}
+
+	merged := map[string]*rankedBookmark{}
+	for setIndex, resultSet := range results {
+		for rank, bm := range resultSet {
+			key := bm.Url
+			if key == "" {
+				key = bm.Title
+			}
+
+			// Reciprocal rank fusion: bookmarks that rank highly in one or more
+			// result sets bubble toward the front of the merged list.
+			score := 1.0 / float64(rank+1)
+			if existing, ok := merged[key]; ok {
+				existing.score += score
+				if rank < existing.bestRank {
+					existing.bestRank = rank
+				}
+				continue
+			}
+
+			merged[key] = &rankedBookmark{
+				bookmark: bm,
+				score:    score,
+				bestRank: rank,
+				firstSet: setIndex,
+			}
+		}
+	}
+
+	outputResults := make([]rankedBookmark, 0, len(merged))
+	for _, bm := range merged {
+		outputResults = append(outputResults, *bm)
+	}
+
+	sort.SliceStable(outputResults, func(i, j int) bool {
+		if outputResults[i].score != outputResults[j].score {
+			return outputResults[i].score > outputResults[j].score
+		}
+		if outputResults[i].bestRank != outputResults[j].bestRank {
+			return outputResults[i].bestRank < outputResults[j].bestRank
+		}
+		if outputResults[i].firstSet != outputResults[j].firstSet {
+			return outputResults[i].firstSet < outputResults[j].firstSet
+		}
+		return outputResults[i].bookmark.Url < outputResults[j].bookmark.Url
+	})
+
+	bookmarks := make([]store.Bookmark, len(outputResults))
+	for i, bm := range outputResults {
+		bookmarks[i] = bm.bookmark
+	}
+
+	return bookmarks
+}
 
 var searchCmd = &cobra.Command{
 	Use:   "search",
@@ -142,21 +188,22 @@ var searchCmd = &cobra.Command{
 				http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 				return
 			}
-			unsafe_order := r.URL.Query().Get("order")
-			order := recency
-			orderBy := "Recency"
-			if unsafe_order == string("fts") {
-				order = ftsRank
-				orderBy = "FTS"
-			}
-			results, err := WebSearchBookmarks(db, q, order)
+			fts_results, err := WebSearchBookmarks(db, q, ftsRank)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprintln(w, "oops we had something go wrong.")
 				fmt.Fprintln(w, err.Error())
 				return
 			}
-			templ.Handler(web.ResultsPage("lukaswerner.com", q, orderBy, results)).ServeHTTP(w, r)
+			semantic_results, err := store.SemanticSearchBookmarks(db, q)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintln(w, "oops we had something go wrong.")
+				fmt.Fprintln(w, err.Error())
+				return
+			}
+			results := mergeResults(fts_results, semantic_results)
+			templ.Handler(web.ResultsPage("lukaswerner.com", q, "(FTS + Embeddings) RRF", results)).ServeHTTP(w, r)
 		})
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			n := store.CountBookmarks(db)
