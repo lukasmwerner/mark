@@ -16,6 +16,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/cli/browser"
 	"github.com/lukasmwerner/mark/helpers"
+	"github.com/lukasmwerner/mark/search"
 	"github.com/lukasmwerner/mark/store"
 	"github.com/spf13/cobra"
 )

@@ -25,15 +25,21 @@ func MergeResults(sources []Source, results ...[]store.Bookmark) []Result {
 
 	merged := map[string]*rankedBookmark{}
 	for setIndex, resultSet := range results {
+		sourceWeight := 1.0
+		for range setIndex {
+			sourceWeight *= 0.5
+		}
+
 		for rank, bm := range resultSet {
 			key := bm.Url
 			if key == "" {
 				key = bm.Title
 			}
 
-			// Reciprocal rank fusion: bookmarks that rank highly in one or more
-			// result sets bubble toward the front of the merged list.
-			score := 1.0 / float64(rank+1)
+			// Weighted reciprocal rank fusion: bookmarks that rank highly in one or more
+			// result sets bubble toward the front of the merged list, with each source's
+			// influence halved by source order: 1, 0.5, 0.25, ...
+			score := sourceWeight / float64(rank+1)
 			if existing, ok := merged[key]; ok {
 				existing.score += score
 				if rank < existing.bestRank {
