@@ -27,7 +27,7 @@ func MergeResults(sources []Source, results ...[]store.Bookmark) []Result {
 	for setIndex, resultSet := range results {
 		sourceWeight := 1.0
 		for range setIndex {
-			sourceWeight *= 0.5
+			sourceWeight *= 0.25
 		}
 
 		for rank, bm := range resultSet {
