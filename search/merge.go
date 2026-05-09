@@ -10,14 +10,21 @@ type Source string
 
 const (
 	FTS        = Source("FTS")
-	PartialFTS = Source("Partial FTS")
-	Embedding  = Source("Embedding")
+	PartialFTS = Source("pFTS")
+	Embedding  = Source("Embed")
 )
 
-func MergeResults(sources []Source, results ...[]store.Bookmark) []Result {
+var sourceWeights = map[Source]float64{
+	FTS:        1.0,
+	Embedding:  0.7,
+	PartialFTS: 0.4,
+}
+
+func MergeResults(sources []Source, results ...[]Bookmark) []Result {
 	type rankedBookmark struct {
 		bookmark store.Bookmark
 		score    float64
+		boost    float64
 		bestRank int
 		firstSet int
 		source   Source
@@ -25,23 +32,34 @@ func MergeResults(sources []Source, results ...[]store.Bookmark) []Result {
 
 	merged := map[string]*rankedBookmark{}
 	for setIndex, resultSet := range results {
-		sourceWeight := 1.0
-		for range setIndex {
-			sourceWeight *= 0.25
-		}
+		sourceKind := sources[setIndex]
+		sourceWeight := sourceWeights[sourceKind]
 
-		for rank, bm := range resultSet {
+		for rank, b := range resultSet {
+			bm := b.Get()
 			key := bm.Url
-			if key == "" {
-				key = bm.Title
-			}
 
 			// Weighted reciprocal rank fusion: bookmarks that rank highly in one or more
 			// result sets bubble toward the front of the merged list, with each source's
-			// influence halved by source order: 1, 0.5, 0.25, ...
+			// influence determined by their weight in the sourceWeights map
 			score := sourceWeight / float64(rank+1)
+
+			// Score boosting depending on different source heuristics
+			boost := 1.0
+			switch sourceKind {
+			case Embedding:
+				boost = embeddingMultiplier(b)
+			case FTS:
+				score = sourceWeight * b.Score()
+			default:
+			}
+			score *= boost
+
 			if existing, ok := merged[key]; ok {
-				existing.score += score
+				if boost != 1.0 {
+					existing.boost += boost
+				}
+				existing.score += score // Boost things that are duplicate
 				if rank < existing.bestRank {
 					existing.bestRank = rank
 				}
@@ -51,6 +69,7 @@ func MergeResults(sources []Source, results ...[]store.Bookmark) []Result {
 			merged[key] = &rankedBookmark{
 				bookmark: bm,
 				score:    score,
+				boost:    boost,
 				bestRank: rank,
 				firstSet: setIndex,
 				source:   sources[setIndex],

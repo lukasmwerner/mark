@@ -7,3 +7,8 @@ type Result struct {
 	Source Source
 	Rank   float64
 }
+
+type Bookmark interface {
+	Get() store.Bookmark
+	Score() float64
+}

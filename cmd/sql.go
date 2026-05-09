@@ -110,7 +110,8 @@ var sqlCmd = &cobra.Command{
 					fmt.Println("err: " + err.Error())
 					continue
 				}
-				renderBookmarks(results)
+
+				renderSemanticResults(results)
 				query = ""
 				continue
 			} else if search, ok := strings.CutPrefix(input, ".search "); ok {
@@ -245,6 +246,26 @@ func renderResults(rows *sql.Rows) {
 
 	fmt.Printf("Query executed successfully. %d row(s) returned.\n", rowCount)
 
+}
+func renderSemanticResults(bookmarks []search.Bookmark) {
+	if bookmarks == nil {
+		return
+	}
+
+	width, _, err := term.GetSize(0)
+	if err != nil {
+		fmt.Println(errorStyle.Render("Error getting terminal size: " + err.Error()))
+		return
+	}
+
+	t := table.New().Headers("url", "title", "description", "tags", "distance").Width(width)
+	for _, bm := range bookmarks {
+		b := bm.Get()
+		t.Row(b.Url, b.Title, b.Description, strings.Join(b.Tags, ", "), fmt.Sprintf("%.4f", bm.Score()))
+	}
+	fmt.Println(t.Render())
+
+	fmt.Printf("Query executed successfully. %d row(s) returned.\n", len(bookmarks))
 }
 
 func executeQuery(db *store.DB, query string) (*sql.Rows, error) {

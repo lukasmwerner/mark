@@ -6,34 +6,70 @@ import (
 	"github.com/lukasmwerner/mark/store"
 )
 
-func FullText5(db *store.DB, query string) ([]store.Bookmark, error) {
-	bookmarks := []store.Bookmark{}
+type fullTextResult struct {
+	bm    store.Bookmark
+	score float64
+}
 
-	rows, err := db.Query(`SELECT url, title, description, tags
+func (f fullTextResult) Get() store.Bookmark {
+	return f.bm
+}
+func (f fullTextResult) Score() float64 {
+	return f.score
+}
+
+func FullText5(db *store.DB, query string) ([]Bookmark, error) {
+	var results []fullTextResult
+	var maximum, minimum float64
+	first := true
+
+	rows, err := db.Query(`SELECT url, title, description, tags, bm25(Bookmarks_fts)
 		FROM Bookmarks_fts
 		WHERE Bookmarks_fts MATCH ?
-		ORDER BY bm25(Bookmarks_fts) DESC;`, query)
+		ORDER BY bm25(Bookmarks_fts);`, query)
 	if err != nil {
-		return bookmarks, err
+		return []Bookmark{}, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var b store.Bookmark
 		var tags string
-		err := rows.Scan(&b.Url, &b.Title, &b.Description, &tags)
+		var score float64
+		err := rows.Scan(&b.Url, &b.Title, &b.Description, &tags, &score)
 		if err != nil {
-			return bookmarks, err
+			return []Bookmark{}, err
 		}
 		b.Tags = strings.Split(tags, ", ")
-		bookmarks = append(bookmarks, b)
+
+		if first {
+			maximum = score
+			minimum = score
+			first = false
+		} else {
+			if score > maximum {
+				maximum = score
+			} else if score < minimum {
+				minimum = score
+			}
+		}
+
+		results = append(results, fullTextResult{
+			bm:    b,
+			score: score,
+		})
 	}
 
-	return bookmarks, nil
+	out := make([]Bookmark, len(results))
+	for i, b := range results {
+		results[i].score = 1 - (b.score-minimum)/(maximum-minimum)
+		out[i] = results[i]
+	}
+	return out, nil
 }
 
-func PartialText(db *store.DB, query string) ([]store.Bookmark, error) {
-	bookmarks := []store.Bookmark{}
+func PartialText(db *store.DB, query string) ([]Bookmark, error) {
+	var results []Bookmark
 
 	fuzzy_query := ""
 	for _, field := range strings.Fields(query) {
@@ -60,11 +96,11 @@ func PartialText(db *store.DB, query string) ([]store.Bookmark, error) {
 			tags
 		FROM Bookmarks_fts
 		WHERE Bookmarks_fts MATCH ?
-		ORDER BY bm25(Bookmarks_fts) DESC;`,
+		ORDER BY bm25(Bookmarks_fts);`,
 		fuzzy_query)
 
 	if err != nil {
-		return bookmarks, err
+		return results, err
 	}
 	defer rows.Close()
 
@@ -74,11 +110,11 @@ func PartialText(db *store.DB, query string) ([]store.Bookmark, error) {
 		var id int
 		err := rows.Scan(&b.Url, &b.Title, &b.Description, &id, &tags)
 		if err != nil {
-			return bookmarks, err
+			return results, err
 		}
 		b.Tags = strings.Split(tags, ", ")
-		bookmarks = append(bookmarks, b)
+		results = append(results, fullTextResult{bm: b})
 	}
 
-	return bookmarks, nil
+	return results, nil
 }
