@@ -6,7 +6,7 @@ import "math/rand"
 func Humanize(num int) string {
 	if num >= 1000 {
 		n := float64(num) / 1000
-		return strconv.FormatFloat(n, 'g', -1, 32) + "k"
+		return strconv.FormatFloat(n, 'g', 3, 32) + "k"
 	}
 	return strconv.Itoa(num)
 }
