@@ -92,7 +92,7 @@ var sqlCmd = &cobra.Command{
 			if input == ".tables" {
 				query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
 			} else if input == ".schema" {
-				query = "SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name;"
+				query = "SELECT sql FROM sqlite_master WHERE type IN ('table', 'trigger') ORDER BY name;"
 			} else if s, ok := strings.CutPrefix(input, ".web-search"); ok {
 				results, err := search.Search(db, s)
 				if err != nil {
@@ -111,19 +111,19 @@ var sqlCmd = &cobra.Command{
 					continue
 				}
 
-				renderSemanticResults(results)
+				renderSearchBookmarks(results)
 				query = ""
 				continue
-			} else if search, ok := strings.CutPrefix(input, ".search "); ok {
-				fmt.Printf("search: '%s'\n", search)
-				rows, err := db.Query("SELECT * FROM Bookmarks_fts WHERE Bookmarks_fts MATCH ?;", search)
+			} else if s, ok := strings.CutPrefix(input, ".search "); ok {
+				fmt.Printf("search: '%s'\n", s)
+				results, err := search.FullText5(db, s)
 				if err != nil {
 					fmt.Println("err: " + err.Error())
 					continue
 				}
-				renderResults(rows)
+
+				renderSearchBookmarks(results)
 				query = ""
-				rows.Close()
 				continue
 			} else {
 				// Append to current query if it doesn't end with semicolon
@@ -247,7 +247,7 @@ func renderResults(rows *sql.Rows) {
 	fmt.Printf("Query executed successfully. %d row(s) returned.\n", rowCount)
 
 }
-func renderSemanticResults(bookmarks []search.Bookmark) {
+func renderSearchBookmarks(bookmarks []search.Bookmark) {
 	if bookmarks == nil {
 		return
 	}

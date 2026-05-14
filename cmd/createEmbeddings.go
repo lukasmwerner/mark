@@ -25,7 +25,7 @@ var createEmbeddingsCmd = &cobra.Command{
 		}
 		res, err := db.Exec(`INSERT INTO
 		bookmark_embeddings (document_id, embedding)
-		SELECT b.id, embed('embeddinggemma', concat_ws(' ', 'title: ', b.title, ' | text: ', b.description, b.tags, justPath(b.url)))
+		SELECT b.id, embed('embeddinggemma', concat_ws(' ', 'title: ', b.title, ' | text: ', b.description, b.tags, b.url))
 		FROM Bookmarks b
 		WHERE NOT EXISTS (
 			SELECT 1 FROM bookmark_embeddings be WHERE be.document_id = b.id
@@ -34,7 +34,7 @@ var createEmbeddingsCmd = &cobra.Command{
 			log.Fatalln(err.Error())
 		}
 		rows, _ := res.RowsAffected()
-		fmt.Sprintf("Successfully did %s rows\n", rows)
+		fmt.Printf("Successfully did %s rows\n", rows)
 	},
 }
 

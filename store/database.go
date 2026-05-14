@@ -117,7 +117,7 @@ END;`,
 		definition: `CREATE TRIGGER IF NOT EXISTS Bookmarks_embeddings_insert AFTER INSERT ON Bookmarks
 BEGIN
     INSERT INTO bookmark_embeddings (document_id, embedding)
-	VALUES (new.id, embed('embeddinggemma', concat_ws(' ', 'title: ', new.title, ' | text: ', new.description, new.tags, justPath(new.url))));
+	VALUES (new.id, embed('embeddinggemma', concat_ws(' ', 'title: ', new.title, ' | text: ', new.description, new.tags, new.url)));
 END;`,
 		flags: []Flag{Embedding},
 	},
@@ -127,7 +127,7 @@ END;`,
 BEGIN
     DELETE FROM bookmark_embeddings WHERE document_id = old.id;
     INSERT INTO bookmark_embeddings (document_id, embedding)
-	VALUES (new.id, embed('embeddinggemma', concat_ws(' ', 'title: ', new.title, ' | text: ', new.description, new.tags, justPath(new.url))));
+	VALUES (new.id, embed('embeddinggemma', concat_ws(' ', 'title: ', new.title, ' | text: ', new.description, new.tags, new.url)));
 END;`,
 		flags: []Flag{Embedding},
 	},
