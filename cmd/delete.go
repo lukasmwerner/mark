@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/huh"
+	"github.com/lukasmwerner/mark/search"
 	"github.com/lukasmwerner/mark/store"
 	"github.com/spf13/cobra"
 )
@@ -30,11 +31,12 @@ var deleteCmd = &cobra.Command{
 
 		searchQuery := strings.Join(args, " ")
 
-		bookmarks, err := store.SearchBookmarks(db, searchQuery)
+		results, err := search.FullText5(db, searchQuery)
 		if err != nil {
 			fmt.Println("unable to search bookmarks", err.Error())
 			return
 		}
+		bookmarks := search.ToBookmarks(results)
 		for _, bm := range bookmarks {
 			var affirmative bool
 			err := huh.NewConfirm().Title("Delete?").

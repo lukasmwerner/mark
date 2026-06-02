@@ -9,6 +9,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/cli/browser"
+	"github.com/lukasmwerner/mark/search"
 	"github.com/lukasmwerner/mark/store"
 	"github.com/spf13/cobra"
 )
@@ -31,15 +32,16 @@ var openCmd = &cobra.Command{
 
 		searchQuery := strings.Join(args, " ")
 
-		bookmarks, err := store.SearchBookmarks(db, searchQuery)
+		results, err := search.FullText5(db, searchQuery)
 		if err != nil {
 			fmt.Println("unable to search bookmarks", err.Error())
 			return
 		}
-		if len(bookmarks) == 0 {
+		if len(results) == 0 {
 			fmt.Println("found no bookmarks")
 			return
 		}
+		bookmarks := search.ToBookmarks(results)
 
 		if len(bookmarks) == 1 {
 			fmt.Printf("Opening %s %s\n", bookmarks[0].Title, bookmarks[0].Url)

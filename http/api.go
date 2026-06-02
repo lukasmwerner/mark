@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/lukasmwerner/mark/search"
 	"github.com/lukasmwerner/mark/store"
 )
 
@@ -16,11 +17,12 @@ func SearchBookmarksHandler(db *store.DB) http.Handler {
 			http.Error(w, "Missing query parameter", http.StatusBadRequest)
 			return
 		}
-		bookmarks, err := store.SearchBookmarks(db, query)
+		results, err := search.FullText5(db, query)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		bookmarks := search.ToBookmarks(results)
 		w.Header().Set("Content-Type", "application/json")
 		jsonBytes, err := json.Marshal(bookmarks)
 		if err != nil {

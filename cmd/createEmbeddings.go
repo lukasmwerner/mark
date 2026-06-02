@@ -34,7 +34,7 @@ var createEmbeddingsCmd = &cobra.Command{
 			log.Fatalln(err.Error())
 		}
 		rows, _ := res.RowsAffected()
-		fmt.Printf("Successfully did %s rows\n", rows)
+		fmt.Printf("Successfully did %d rows\n", rows)
 	},
 }
 

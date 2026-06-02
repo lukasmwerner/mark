@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/huh"
+	"github.com/lukasmwerner/mark/search"
 	"github.com/lukasmwerner/mark/store"
 	"github.com/spf13/cobra"
 )
@@ -40,15 +41,16 @@ var editCmd = &cobra.Command{
 			}
 		}
 
-		bookmarks, err := store.SearchBookmarks(db, searchQuery)
+		results, err := search.FullText5(db, searchQuery)
 		if err != nil {
 			fmt.Println("unable to search bookmarks", err.Error())
 			return
 		}
-		if len(bookmarks) == 0 {
+		if len(results) == 0 {
 			fmt.Println("found no bookmarks")
 			return
 		}
+		bookmarks := search.ToBookmarks(results)
 
 		if len(bookmarks) != 1 {
 			pickedIndex := 0

@@ -16,6 +16,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/cli/browser"
 	"github.com/lukasmwerner/mark/helpers"
+	"github.com/lukasmwerner/mark/search"
 	"github.com/lukasmwerner/mark/store"
 	"github.com/spf13/cobra"
 )
@@ -79,11 +80,12 @@ func (m rootAppModel) updateTable() rootAppModel {
 	var bookmarks []store.Bookmark
 	var err error
 	if m.input.Value() != "" {
-		bookmarks, err = store.SearchBookmarks(m.db, m.input.Value())
+		results, err := search.FullText5(m.db, m.input.Value())
 		if err != nil {
 			log.Panicln(err)
 			return m
 		}
+		bookmarks = search.ToBookmarks(results)
 	} else {
 		bookmarks, err = store.GetBookmarks(m.db)
 		if err != nil {

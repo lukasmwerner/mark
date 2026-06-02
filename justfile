@@ -5,6 +5,7 @@ home_dir := env_var('HOME')
 
 # Install the Go application
 install:
+	templ generate
     go install -tags "fts5" .
 
 mac-service-install: install

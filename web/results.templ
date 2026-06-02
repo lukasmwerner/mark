@@ -28,7 +28,7 @@ func translateSource(s search.Source) string {
 	}
 }
 
-templ ResultsPage(markHostname string, query string, orderBy string, results []search.Result) {
+templ ResultsPage(markHostname string, query string, results []search.Result) {
 	@Page() {
 		@Head(query + " - mark: " + markHostname)
 		@Body() {
@@ -44,13 +44,6 @@ templ ResultsPage(markHostname string, query string, orderBy string, results []s
 					/>
 				}
 				@StatusBarGroup("") {
-					<div class="statusbar-item" style="background:#D3C6AA;">
-						<pre style="margin:0;" id="order-by">Order By: { orderBy }</pre>
-						<!--<div class="dropdown orderby">
-							<button id="recency">Recency</button>
-							<button id="fts">FTS Rank</button>
-						</div>-->
-					</div>
 					@StatusBarItem(Humanize(len(results))+" Results", "#A7C080")
 					@StatusBarItem(markHostname, "#4A545C")
 				}

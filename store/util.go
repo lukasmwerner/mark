@@ -99,3 +99,15 @@ func justPath(s string) string {
 	}
 	return u.Path
 }
+
+func GetStoragePath() (string, error) {
+	markStoreLocation := os.Getenv("MARK_STORE_LOCATION")
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.Join(errors.New("unable to get homedir"), err)
+	}
+	if markStoreLocation == "" {
+		markStoreLocation = path.Join(homedir, ".config", "mark")
+	}
+	return markStoreLocation, nil
+}

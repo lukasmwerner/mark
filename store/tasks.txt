@@ -1,0 +1,20 @@
+
+func SubmitTask() {
+	`insert into tasks (id, )`
+}
+
+func RunTasks() {
+	completedTasks := []string{}
+	for task := range tasks {
+		for matcher := range task.Matches {
+			results := `select from tasks where completed = 0`
+			if len(results) > 0 {
+				for result := range results {
+					task.Action(result)
+					completedTasks.append(result.id)
+				}
+			}
+		}
+	}
+	`delete tasks where id in {completedTasks};`
+}

@@ -13,9 +13,13 @@ import (
 
 // dumpCmd represents the dump command
 var dumpCmd = &cobra.Command{
-	Use:   "dump",
+	Use:   "dump filename.db",
 	Short: "dumps the database to a sqlite3 file",
-	Args:  cobra.MinimumNArgs(1),
+	Long: `Creates a large dump of the bookmarks table into a new sqlite3. Useful for exports and sharing of bookmark data.
+Example Use:
+
+mark dump ~/Downloads/my_bookmarks.db`,
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := store.Open(store.Options{
 			Flags: []store.Flag{store.Embedding},

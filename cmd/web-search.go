@@ -4,9 +4,11 @@ Copyright © 2025 Lukas Werner <me@lukaswerner.com>
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	_ "embed"
 
@@ -22,8 +24,20 @@ var searchCmd = &cobra.Command{
 	Use:   "search",
 	Short: `[EXPERIMENTAL] google search like interface`,
 	Run: func(cmd *cobra.Command, args []string) {
+		config, err := store.LoadConfig()
+		if errors.Is(err, os.ErrNotExist) {
+			config, err = store.SaveDefaultConfig()
+			if err != nil {
+				log.Println(err.Error())
+				return
+			}
+		} else if err != nil {
+			log.Println(err.Error())
+			return
+		}
+
 		db, err := store.Open(store.Options{
-			Flags: []store.Flag{store.Embedding},
+			Flags: config.Flags,
 		})
 		if err != nil {
 			log.Println(err.Error())
@@ -45,11 +59,11 @@ var searchCmd = &cobra.Command{
 				fmt.Fprintln(w, err.Error())
 				return
 			}
-			templ.Handler(web.ResultsPage("lukaswerner.com", q, "(FTS + Embeddings) RRF", results)).ServeHTTP(w, r)
+			templ.Handler(web.ResultsPage(config.Domain, q, results)).ServeHTTP(w, r)
 		})
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			n := store.CountBookmarks(db)
-			templ.Handler(web.LandingPage("lukaswerner.com", n)).ServeHTTP(w, r)
+			templ.Handler(web.LandingPage(config.Domain, n)).ServeHTTP(w, r)
 		})
 
 		err = http.ListenAndServe(":1995", nil)

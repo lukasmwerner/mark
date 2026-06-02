@@ -1,29 +1,30 @@
 module github.com/lukasmwerner/mark
 
-go 1.24.1
+go 1.25.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.2
-	github.com/a-h/templ v0.3.1001
+	github.com/a-h/templ v0.3.1020
+	github.com/asg017/sqlite-vec-go-bindings v0.1.6
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/huh v0.5.2
 	github.com/cli/browser v1.3.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/mattn/go-sqlite3 v1.14.24
+	github.com/ollama/ollama v0.23.0
 	github.com/spf13/cobra v1.8.1
 )
 
 require (
-	github.com/asg017/sqlite-vec-go-bindings v0.1.6 // indirect
+	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/charmbracelet/colorprofile v0.3.2 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/ollama/ollama v0.23.0 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
-	golang.org/x/crypto v0.43.0 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
@@ -55,8 +56,8 @@ require (
 	github.com/sahilm/fuzzy v0.1.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 )

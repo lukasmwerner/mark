@@ -21,7 +21,9 @@ const CRSQLITE_VERSION = "v0.16.3"
 
 type Flag string
 
-const Embedding = Flag("embedding")
+const (
+	Embedding = Flag("embedding")
+)
 
 type Options struct {
 	Flags []Flag
@@ -142,13 +144,9 @@ END;`,
 }
 
 func Open(options Options) (*DB, error) {
-	markStoreLocation := os.Getenv("MARK_STORE_LOCATION")
-	homedir, err := os.UserHomeDir()
+	markStoreLocation, err := GetStoragePath()
 	if err != nil {
-		return nil, errors.Join(errors.New("unable to get homedir"), err)
-	}
-	if markStoreLocation == "" {
-		markStoreLocation = path.Join(homedir, ".config", "mark")
+		return nil, errors.Join(errors.New("unable to get mark store location"), err)
 	}
 
 	if err := EnsureDirExists(markStoreLocation); err != nil {
@@ -207,7 +205,7 @@ func Open(options Options) (*DB, error) {
 		Hostname:        hostname,
 	}
 
-	err = EnsureTables(db, Tables...)
+	err = EnsureTables(db, options.Flags, Tables...)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -272,17 +270,31 @@ func (db *DB) FSWatcher() {
 		case event := <-watcher.Events:
 			if event.Has(fsnotify.Write) || event.Has(fsnotify.Rename) {
 				syncronizeFromHostsToDB(db, db.Hostname, db.ChangesStoreLoc)
-				log.Println("sync-event!")
 			}
 		}
 	}
 }
 
-func EnsureTables(db *DB, tables ...requirement) error {
+var UnmatchedFlag = fmt.Errorf("flags didn't match")
+
+func EnsureTables(db *DB, flags []Flag, tables ...requirement) error {
 	for _, table := range tables {
+		ok := true
 		if table.flags != nil {
-			// TODO: there are flags... need to check if we have them enabled
+			count := 0
+			for tableFlag := range table.flags {
+				for flag := range flags {
+					if flag == tableFlag {
+						count += 1
+					}
+				}
+			}
+			ok = count == len(flags)
 		}
+		if !ok {
+			return UnmatchedFlag
+		}
+
 		_, err := db.Exec(table.definition)
 		if err != nil {
 			log.Print(table.name, err.Error())
@@ -302,32 +314,6 @@ func InsertBookmark(db *DB, bookmark Bookmark) (BookmarkId, error) {
 	}
 	id, err := result.LastInsertId()
 	return BookmarkId(id), err
-}
-
-func SearchBookmarks(db *DB, query string) ([]Bookmark, error) {
-	bookmarks := []Bookmark{}
-
-	rows, err := db.Query(`SELECT url, title, description, tags
-		FROM Bookmarks_fts
-		WHERE Bookmarks_fts MATCH ?
-		ORDER BY bm25(Bookmarks_fts) DESC;`, query)
-	if err != nil {
-		return bookmarks, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var b Bookmark
-		var tags string
-		err := rows.Scan(&b.Url, &b.Title, &b.Description, &tags)
-		if err != nil {
-			return bookmarks, err
-		}
-		b.Tags = strings.Split(tags, ", ")
-		bookmarks = append(bookmarks, b)
-	}
-
-	return bookmarks, nil
 }
 
 func GetBookmark(db *DB, query_url string) (Bookmark, error) {
