@@ -66,6 +66,7 @@ var searchCmd = &cobra.Command{
 			templ.Handler(web.LandingPage(config.Domain, n)).ServeHTTP(w, r)
 		})
 
+		fmt.Println("listening on :1995")
 		err = http.ListenAndServe(":1995", nil)
 		if err != nil {
 			log.Println(err.Error())

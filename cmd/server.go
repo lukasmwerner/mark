@@ -29,6 +29,7 @@ var serverCmd = &cobra.Command{
 
 		mark_http.RegisterRoutes(db, http.DefaultServeMux)
 
+		fmt.Println("listening on :1990")
 		log.Fatal(http.ListenAndServe(":1990", nil))
 	},
 }
