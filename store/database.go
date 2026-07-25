@@ -12,8 +12,8 @@ import (
 	"strings"
 	"sync"
 
-	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
 	"github.com/fsnotify/fsnotify"
+	sqlite_vec "github.com/lukasmwerner/sqlite-vec-go/cgo"
 	"github.com/mattn/go-sqlite3"
 )
 

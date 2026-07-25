@@ -6,12 +6,12 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/a-h/templ v0.3.1020
-	github.com/asg017/sqlite-vec-go-bindings v0.1.6
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/huh v0.5.2
 	github.com/cli/browser v1.3.0
 	github.com/fsnotify/fsnotify v1.9.0
+	github.com/lukasmwerner/sqlite-vec-go v0.1.11
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/ollama/ollama v0.23.0
 	github.com/spf13/cobra v1.8.1

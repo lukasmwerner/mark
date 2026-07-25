@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
-	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
+	sqlite_vec "github.com/lukasmwerner/sqlite-vec-go/cgo"
 	ollama "github.com/ollama/ollama/api"
 )
 
