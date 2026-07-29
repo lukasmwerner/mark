@@ -15,19 +15,6 @@ func DomainOnly(u string) string {
 
 }
 
-func translateSource(s search.Source) string {
-	switch s {
-	case search.FTS:
-		return "Direct Match"
-	case search.Embedding:
-		return "Meaning Match"
-	case search.PartialFTS:
-		return "Partial Word Match"
-	default:
-		return ""
-	}
-}
-
 templ ResultsPage(markHostname string, query string, results []search.Result) {
 	@Page() {
 		@Head(query + " - mark: " + markHostname)
@@ -58,8 +45,25 @@ templ ResultsPage(markHostname string, query string, results []search.Result) {
 					<div class="result">
 						<a href={ result.Url } class="title">{ result.Title }</a>
 						<br/>
-						<a href={ result.Url } class="domain">{ DomainOnly(result.Url) }</a>
-						<span class="algorithm">{ translateSource(result.Source) }({ fmt.Sprintf("%.4f", result.Rank) })</span>
+						<span class="pills">
+							<a href={ result.Url } class="domain">{ DomainOnly(result.Url) }</a>
+							<span class="algorithm">
+								switch result.Source {
+									case search.FTS:
+										@SheildCheck()
+										Direct Match
+									case search.Embedding:
+										@Speech()
+										Meaning Match
+									case search.PartialFTS:
+										@ApproxEqual()
+										Parital Match
+									default:
+										@ApproxEqual()
+								}
+								({ fmt.Sprintf("%.4f", result.Rank) })
+							</span>
+						</span>
 						<p>{ result.Description }</p>
 					</div>
 				}

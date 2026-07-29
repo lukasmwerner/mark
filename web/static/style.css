@@ -125,6 +125,11 @@ a:visited {
 		.title {
 			font-size: 1.5rem;
 		}
+		.pills {
+			display: flex;
+			flex-direction: row;
+			gap: 1em;
+		}
 		.domain {
 			color: #D3C6AA;
 			background: #3D484D;
@@ -148,6 +153,8 @@ a:visited {
 			margin-top: 0.5em;
 			margin-bottom: 0.5em;
 			display: inline-flex;
+			align-items: center;
+			gap: 0.4em;
 		}
 		p {
 			color: #C4C0B9;
