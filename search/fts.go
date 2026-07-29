@@ -71,8 +71,8 @@ func FullText5(db *store.DB, query string) ([]Bookmark, error) {
 func PartialText(db *store.DB, query string) ([]Bookmark, error) {
 	var results []Bookmark
 
-	fuzzy_query := ""
-	for _, field := range strings.Fields(query) {
+	var fuzzy_query strings.Builder
+	for field := range strings.FieldsSeq(query) {
 		fragment := ""
 		switch field {
 		case "NOT":
@@ -85,7 +85,8 @@ func PartialText(db *store.DB, query string) ([]Bookmark, error) {
 			fragment = field + "*"
 
 		}
-		fuzzy_query += " " + fragment
+		fuzzy_query.WriteString(" ")
+		fuzzy_query.WriteString(fragment)
 	}
 
 	rows, err := db.Query(`SELECT
@@ -97,7 +98,7 @@ func PartialText(db *store.DB, query string) ([]Bookmark, error) {
 		FROM Bookmarks_fts
 		WHERE Bookmarks_fts MATCH ?
 		ORDER BY bm25(Bookmarks_fts);`,
-		fuzzy_query)
+		fuzzy_query.String())
 
 	if err != nil {
 		return results, err
