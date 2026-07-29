@@ -137,7 +137,7 @@ END;`,
 		name: "Bookmark_embeddings_Sync_3",
 		definition: `CREATE TRIGGER IF NOT EXISTS Bookmarks_embeddings_delete AFTER DELETE ON Bookmarks
 BEGIN
-    DELETE FROM Bookmarks_fts WHERE rowid = old.id;
+    DELETE FROM bookmark_embeddings WHERE document_id = old.id;
 END;`,
 		flags: []Flag{Embedding},
 	},
