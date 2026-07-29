@@ -4,13 +4,21 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"os"
 
 	sqlite_vec "github.com/lukasmwerner/sqlite-vec-go/cgo"
 	ollama "github.com/ollama/ollama/api"
 )
 
 func ollama_embedding(model, s string) ([]byte, error) {
-	host, _ := url.Parse("http://localhost:11434")
+	ollama_host := os.Getenv("OLLAMA_HOST")
+	if ollama_host == "" {
+		ollama_host = "http://localhost:11434"
+	}
+	host, err := url.Parse(ollama_host)
+	if err != nil {
+		return nil, err
+	}
 	cli := ollama.NewClient(host, http.DefaultClient)
 	req := &ollama.EmbedRequest{
 		Model: model,
